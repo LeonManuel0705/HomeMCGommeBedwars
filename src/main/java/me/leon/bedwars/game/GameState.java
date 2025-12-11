@@ -1,4 +1,8 @@
 package me.leon.bedwars.game;
 
-public class GameState {
+public enum GameState {
+    LOBBY,
+    PROTECTION,
+    INGAME,
+    ENDING
 }

@@ -1,0 +1,22 @@
+name: BedWars
+version: 1.0
+main: me.leon.bedwars.BedWars
+author: Leon
+depend: [Core]
+
+commands:
+  bw:
+    description: BedWars Hauptbefehl
+    usage: /bw <join|leave|maps|achievements|gadgets>
+  stats:
+    description: Zeige deine Statistiken
+  start:
+    description: Starte das Spiel (Admin)
+  leave:
+    description: Verlasse das Spiel
+  setup:
+    description: Map Setup (Admin)
+  shout:
+    description: Schreibe an alle
+  joinme:
+    description: Sende JoinMe Anfrage

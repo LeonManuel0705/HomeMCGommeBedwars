@@ -3,7 +3,7 @@ package me.leon.bedwars;
 import me.leon.bedwars.commands.*;
 import me.leon.bedwars.listeners.*;
 import me.leon.bedwars.managers.*;
-import me.leon.bedwars.utils.ItemBuilder;
+import me.leon.core.managers.RankManager;
 import me.leon.core.utils.CoreAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
@@ -99,7 +99,7 @@ public class BedWars extends JavaPlugin {
 
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
         getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord",
-                new me.leon.bedwars.listeners.PluginMessageListener(this));
+                new PluginMessageListener(this));
     }
 
     private void registerCommands() {
@@ -109,7 +109,8 @@ public class BedWars extends JavaPlugin {
         getCommand("leave").setExecutor(new LeaveCommand(this));
         getCommand("setup").setExecutor(new SetupCommand(this));
         getCommand("shout").setExecutor(new ShoutCommand(this));
-        getCommand("joinme").setExecutor(new me.leon.bedwars.commands.JoinMeCommand(this));
+        getCommand("joinme").setExecutor(new JoinMeCommand(this));
+        getCommand("lobby").setExecutor(new LobbyCommand(this));
     }
 
     private void registerListeners() {
@@ -133,7 +134,8 @@ public class BedWars extends JavaPlugin {
         pm.registerEvents(new ChatListener(this), this);
         pm.registerEvents(new ProjectileLaunchListener(this), this);
         pm.registerEvents(new ProjectileHitListener(this), this);
-        pm.registerEvents(new me.leon.bedwars.listeners.TeamSelectorListener(this), this);
+        pm.registerEvents(new TeamSelectorListener(this), this);
+        pm.registerEvents(new LobbyItemListener(this), this);
     }
 
     private void createTables() {
@@ -267,5 +269,12 @@ public class BedWars extends JavaPlugin {
 
     public JoinMeIntegration getJoinMeIntegration() {
         return joinMeIntegration;
+    }
+
+    public RankManager getRankManager() {
+        if (CoreAPI.isCoreAvailable()) {
+            return CoreAPI.getCore().getRankManager();
+        }
+        return null;
     }
 }
