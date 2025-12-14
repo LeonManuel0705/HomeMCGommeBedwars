@@ -34,6 +34,9 @@ public class BedWarsCommand implements CommandExecutor {
             player.sendMessage("§e/bw achievements §7- Zeige Achievements");
             player.sendMessage("§e/bw gadgets §7- Öffne Gadget Shop");
             player.sendMessage("§e/stats §7- Zeige Statistiken");
+            if (player.hasPermission("bedwars.forcestart")) {
+                player.sendMessage("§e/bw start §7- Startet das Spiel sofort");
+            }
             return true;
         }
 
