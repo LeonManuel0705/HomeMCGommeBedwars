@@ -35,6 +35,11 @@ public class GameManager {
             return;
         }
 
+        if (plugin.getBedWarsLobby().isInBuildMode(player.getUniqueId())) {
+            plugin.getBedWarsLobby().toggleBuildMode(player);
+            player.sendMessage(BedWars.PREFIX + "§7Bau-Modus wurde automatisch deaktiviert.");
+        }
+
         game.addPlayer(player);
         playerGames.put(player.getUniqueId(), game);
     }
@@ -43,6 +48,9 @@ public class GameManager {
         Game game = playerGames.remove(player.getUniqueId());
         if (game != null) {
             game.removePlayer(player);
+            player.teleport(plugin.getBedWarsLobby().getLobbySpawn());
+            player.getInventory().clear();
+            plugin.getBedWarsLobby().giveItems(player);
         }
     }
 

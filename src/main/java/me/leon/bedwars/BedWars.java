@@ -4,6 +4,8 @@ import me.leon.bedwars.commands.*;
 import me.leon.bedwars.listeners.*;
 import me.leon.bedwars.lobby.BedWarsLobby;
 import me.leon.bedwars.managers.*;
+import me.leon.core.managers.ClanManager;
+import me.leon.core.managers.NickManager;
 import me.leon.core.managers.RankManager;
 import me.leon.core.utils.CoreAPI;
 import org.bukkit.Bukkit;
@@ -118,6 +120,7 @@ public class BedWars extends JavaPlugin {
         getCommand("shout").setExecutor(new ShoutCommand(this));
         getCommand("joinme").setExecutor(new JoinMeCommand(this));
         getCommand("lobby").setExecutor(new LobbyCommand(this));
+        getCommand("build").setExecutor(new BuildCommand(this));
     }
 
     private void registerListeners() {
@@ -162,6 +165,7 @@ public class BedWars extends JavaPlugin {
         pm.registerEvents(new LobbyItemListener(this), this);
         pm.registerEvents(new LobbyInteractListener(this), this);
         pm.registerEvents(new NavigatorListener(this), this);
+        pm.registerEvents(new LobbyBuildListener(this), this);
 
         // Food Events
         pm.registerEvents(new FoodLevelChangeListener(this), this);
@@ -307,6 +311,20 @@ public class BedWars extends JavaPlugin {
     public RankManager getRankManager() {
         if (CoreAPI.isCoreAvailable()) {
             return CoreAPI.getCore().getRankManager();
+        }
+        return null;
+    }
+
+    public NickManager getNickManager() {
+        if (CoreAPI.isCoreAvailable()) {
+            return CoreAPI.getCore().getNickManager();
+        }
+        return null;
+    }
+
+    public ClanManager getClanManager() {
+        if (CoreAPI.isCoreAvailable()) {
+            return CoreAPI.getCore().getClanManager();
         }
         return null;
     }

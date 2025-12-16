@@ -9,13 +9,11 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.potion.PotionEffect;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
-import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -24,12 +22,14 @@ public class BedWarsLobby {
 
     private final BedWars plugin;
     private final Set<UUID> lobbyPlayers;
+    private final Set<UUID> buildModePlayers;
     private Location lobbySpawn;
     private BukkitRunnable updateTask;
 
     public BedWarsLobby(BedWars plugin) {
         this.plugin = plugin;
         this.lobbyPlayers = new HashSet<>();
+        this.buildModePlayers = new HashSet<>();
         loadLobbyLocation();
         startUpdateTask();
     }
@@ -61,6 +61,7 @@ public class BedWarsLobby {
 
     public void removePlayer(Player player) {
         lobbyPlayers.remove(player.getUniqueId());
+        buildModePlayers.remove(player.getUniqueId());
         player.getScoreboard().clearSlot(DisplaySlot.SIDEBAR);
     }
 
@@ -74,14 +75,16 @@ public class BedWarsLobby {
         player.setLevel(0);
         player.setExp(0);
 
-        for (PotionEffect effect : player.getActivePotionEffects()) {
+        for (org.bukkit.potion.PotionEffect effect : player.getActivePotionEffects()) {
             player.removePotionEffect(effect.getType());
         }
 
-        giveItems(player);
+        if (!buildModePlayers.contains(player.getUniqueId())) {
+            giveItems(player);
+        }
     }
 
-    private void giveItems(Player player) {
+    public void giveItems(Player player) {
         ItemStack navigator = new ItemBuilder(Material.COMPASS)
                 .setDisplayName("§aNavigator §7(Rechtsklick)")
                 .setLore("§7Wähle ein Spiel aus!")
@@ -103,14 +106,28 @@ public class BedWarsLobby {
                 .build();
         player.getInventory().setItem(7, gadgets);
 
-        // Ink Sack is deprecated, use RED_DYE or legacy support if pre-1.13
-        Material dye = Material.matchMaterial("RED_DYE");
-        if (dye == null) dye = Material.valueOf("INK_SACK"); // legacy fallback
-
-        ItemStack lobby = new ItemBuilder(dye)
+        ItemStack lobby = new ItemBuilder(Material.INK_SACK, 1, (short) 1)
                 .setDisplayName("§cZurück zur Lobby §7(Rechtsklick)")
                 .build();
         player.getInventory().setItem(8, lobby);
+    }
+
+    public boolean toggleBuildMode(Player player) {
+        UUID uuid = player.getUniqueId();
+
+        if (buildModePlayers.contains(uuid)) {
+            buildModePlayers.remove(uuid);
+            giveItems(player);
+            return false;
+        } else {
+            buildModePlayers.add(uuid);
+            player.getInventory().clear();
+            return true;
+        }
+    }
+
+    public boolean isInBuildMode(UUID uuid) {
+        return buildModePlayers.contains(uuid);
     }
 
     public void updateScoreboard(Player player) {
@@ -122,21 +139,44 @@ public class BedWarsLobby {
         int line = 15;
 
         setScore(obj, "§1", line--);
-        setScore(obj, "§7Online: §a" + Bukkit.getOnlinePlayers().size(), line--);
+        setScore(obj, "§7Spieler:", line--);
+        setScore(obj, "  §e" + Bukkit.getOnlinePlayers().size(), line--);
         setScore(obj, "§2", line--);
-        setScore(obj, "§7Spiele: §e" + plugin.getGameManager().getAllGames().size(), line--);
+
+        int lobbyCount = 0;
+        int ingameCount = 0;
+        for (me.leon.bedwars.game.Game game : plugin.getGameManager().getAllGames()) {
+            if (game.getState() == me.leon.bedwars.game.GameState.LOBBY) {
+                lobbyCount++;
+            } else if (game.getState() == me.leon.bedwars.game.GameState.INGAME) {
+                ingameCount++;
+            }
+        }
+
+        setScore(obj, "§7Spiele:", line--);
+        setScore(obj, "  §aLobby: §e" + lobbyCount, line--);
+        setScore(obj, "  §cIngame: §e" + ingameCount, line--);
         setScore(obj, "§3", line--);
 
         if (CoreAPI.isCoreAvailable()) {
             try {
                 int coins = CoreAPI.getCore().getCoinManager().getCoins(player.getUniqueId());
-                setScore(obj, "§7Coins: §6" + coins, line--);
+                setScore(obj, "§7Coins:", line--);
+                setScore(obj, "  §6" + coins, line--);
+                setScore(obj, "§4", line--);
             } catch (Exception e) {
-                setScore(obj, "§7Coins: §6-", line--);
             }
         }
 
-        setScore(obj, "§4", line--);
+        me.leon.bedwars.managers.StatsManager.PlayerStats stats = plugin.getStatsManager().getStats(player.getUniqueId());
+        if (stats != null) {
+            setScore(obj, "§7Wins:", line--);
+            setScore(obj, "  §a" + stats.wins, line--);
+            setScore(obj, "§7Kills:", line--);
+            setScore(obj, "  §c" + stats.kills, line--);
+            setScore(obj, "§5", line--);
+        }
+
         setScore(obj, "§eplay.homemc.org", line--);
 
         player.setScoreboard(board);
@@ -146,40 +186,59 @@ public class BedWarsLobby {
         obj.getScore(text).setScore(score);
     }
 
-    // === Reflection-based TabList update (from your working TabManager) ===
     public void updateTabList(Player player) {
-        try {
-            String header = buildHeader(player).replace("\"", "\\\"");
-            String footer = buildFooter().replace("\"", "\\\"");
+        if (!CoreAPI.isCoreAvailable()) return;
 
-            Class<?> craftPlayerClass = Class.forName("org.bukkit.craftbukkit." +
-                    getServerVersion() + ".entity.CraftPlayer");
+        try {
+            // === Header (oben im Tab) ===
+            String header = "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                    "§c§lBED§f§lWARS\n" +
+                    "§7play.homemc.org\n" +
+                    "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+
+            // === Stats Zeile ===
+            me.leon.bedwars.managers.StatsManager.PlayerStats stats = plugin.getStatsManager().getStats(player.getUniqueId());
+            String statsLine = "";
+            if (stats != null) {
+                statsLine = "§7Deine Stats: §e" + stats.wins + " Wins §8| §c" + stats.kills + " Kills\n";
+            }
+
+            // === Footer (unten im Tab) ===
+            String footer = "\n§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                    statsLine +
+                    "§7Online: §a" + Bukkit.getOnlinePlayers().size() + " §8| " +
+                    "§7Spiele: §e" + plugin.getGameManager().getAllGames().size() + "\n" +
+                    "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━";
+
+            // === Reflection für ältere Versionen ===
+            String version = getServerVersion();
+
+            Class<?> craftPlayerClass = Class.forName("org.bukkit.craftbukkit." + version + ".entity.CraftPlayer");
             Object craftPlayer = craftPlayerClass.cast(player);
             Object handle = craftPlayerClass.getMethod("getHandle").invoke(craftPlayer);
             Object connection = handle.getClass().getField("playerConnection").get(handle);
 
-            Class<?> chatSerializer = Class.forName("net.minecraft.server." +
-                    getServerVersion() + ".IChatBaseComponent$ChatSerializer");
-            Class<?> packetClass = Class.forName("net.minecraft.server." +
-                    getServerVersion() + ".PacketPlayOutPlayerListHeaderFooter");
+            Class<?> chatSerializer = Class.forName("net.minecraft.server." + version + ".IChatBaseComponent$ChatSerializer");
+            Class<?> packetClass = Class.forName("net.minecraft.server." + version + ".PacketPlayOutPlayerListHeaderFooter");
 
             Object headerComponent = chatSerializer.getMethod("a", String.class)
-                    .invoke(null, "{\"text\":\"" + header + "\"}");
+                    .invoke(null, "{\"text\":\"" + header.replace("\"", "\\\"") + "\"}");
             Object footerComponent = chatSerializer.getMethod("a", String.class)
-                    .invoke(null, "{\"text\":\"" + footer + "\"}");
+                    .invoke(null, "{\"text\":\"" + footer.replace("\"", "\\\"") + "\"}");
 
             Object packet = packetClass.getConstructor().newInstance();
 
-            Field a = packetClass.getDeclaredField("a");
-            Field b = packetClass.getDeclaredField("b");
+            java.lang.reflect.Field a = packetClass.getDeclaredField("a");
+            java.lang.reflect.Field b = packetClass.getDeclaredField("b");
             a.setAccessible(true);
             b.setAccessible(true);
             a.set(packet, headerComponent);
             b.set(packet, footerComponent);
 
             connection.getClass().getMethod("sendPacket",
-                            Class.forName("net.minecraft.server." + getServerVersion() + ".Packet"))
+                            Class.forName("net.minecraft.server." + version + ".Packet"))
                     .invoke(connection, packet);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -190,35 +249,6 @@ public class BedWarsLobby {
         return name.substring(name.lastIndexOf('.') + 1);
     }
 
-    private String buildHeader(Player player) {
-        int coins = 0;
-        if (CoreAPI.isCoreAvailable()) {
-            try {
-                coins = CoreAPI.getCore().getCoinManager().getCoins(player.getUniqueId());
-            } catch (Exception ignored) {}
-        }
-
-        return "\n" +
-                "§6§l⚡ §c§lBED§f§lWARS §6§l⚡\n" +
-                "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                "\n" +
-                "§7Deine Coins§8: §6" + coins + "\n" +
-                "\n";
-    }
-
-    private String buildFooter() {
-        int online = Bukkit.getOnlinePlayers().size();
-        int games = plugin.getGameManager().getAllGames().size();
-
-        return "\n" +
-                "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                "§7Spieler online§8: §a" + online + "\n" +
-                "§7Aktive Spiele§8: §e" + games + "\n" +
-                "\n" +
-                "§e§lWebsite§8: §fwww.homemc.org\n" +
-                "§9§lDiscord§8: §fdiscord.gg/homemc\n" +
-                "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-    }
 
     private void startUpdateTask() {
         updateTask = new BukkitRunnable() {
@@ -233,7 +263,7 @@ public class BedWarsLobby {
                 }
             }
         };
-        updateTask.runTaskTimer(plugin, 20L, 100L); // alle 5 Sekunden
+        updateTask.runTaskTimer(plugin, 20L, 20L);
     }
 
     public void shutdown() {

@@ -6,6 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -26,16 +27,16 @@ public class GeneratorManager {
         String gameId = game.getGameId();
         List<Generator> generators = new ArrayList<>();
 
-        // Team-Generatoren (Bronze + Eisen)
+        // Team-Generatoren (Bronze + Eisen getrennt)
         for (TeamData team : game.getMapData().getTeams()) {
             for (Location loc : team.getGenerators()) {
                 // Bronze Generator
-                Generator bronzeGen = new Generator(loc.clone().add(0, 0, 0), GeneratorType.BRONZE, 1);
+                Generator bronzeGen = new Generator(loc.clone(), GeneratorType.BRONZE);
                 bronzeGen.start();
                 generators.add(bronzeGen);
 
-                // Eisen Generator
-                Generator ironGen = new Generator(loc.clone().add(0, 0.5, 0), GeneratorType.IRON, 1);
+                // Eisen Generator (leicht versetzt wenn gleicher Block)
+                Generator ironGen = new Generator(loc.clone().add(0.1, 0, 0.1), GeneratorType.IRON);
                 ironGen.start();
                 generators.add(ironGen);
             }
@@ -43,14 +44,14 @@ public class GeneratorManager {
 
         // Bronze-Generatoren auf der Map
         for (Location loc : game.getMapData().getBronzeGenerators()) {
-            Generator gen = new Generator(loc, GeneratorType.BRONZE, 1);
+            Generator gen = new Generator(loc, GeneratorType.BRONZE);
             gen.start();
             generators.add(gen);
         }
 
         // Gold-Generatoren auf der Map
         for (Location loc : game.getMapData().getGoldGenerators()) {
-            Generator gen = new Generator(loc, GeneratorType.GOLD, 1);
+            Generator gen = new Generator(loc, GeneratorType.GOLD);
             gen.start();
             generators.add(gen);
         }
@@ -70,15 +71,15 @@ public class GeneratorManager {
     public class Generator {
         private final Location location;
         private final GeneratorType type;
-        private final int level;
         private BukkitRunnable task;
         private int nextSpawnIn;
+        private int currentAmount;
 
-        public Generator(Location location, GeneratorType type, int level) {
+        public Generator(Location location, GeneratorType type) {
             this.location = location.clone().add(0.5, 0, 0.5);
             this.type = type;
-            this.level = level;
-            this.nextSpawnIn = type.getBaseDelay(level);
+            this.nextSpawnIn = type.getDelay();
+            this.currentAmount = 0;
         }
 
         public void start() {
@@ -88,8 +89,11 @@ public class GeneratorManager {
                     nextSpawnIn--;
 
                     if (nextSpawnIn <= 0) {
-                        spawnItem();
-                        nextSpawnIn = type.getBaseDelay(level);
+                        if (currentAmount < type.getMaxItems()) {
+                            spawnItem();
+                            currentAmount++;
+                        }
+                        nextSpawnIn = type.getDelay();
                     }
                 }
             };
@@ -103,57 +107,79 @@ public class GeneratorManager {
         }
 
         private void spawnItem() {
+            // Prüfe ob bereits zu viele Items am Boden liegen
+            int nearbyItems = 0;
+            for (org.bukkit.entity.Entity entity : location.getWorld().getNearbyEntities(location, 1, 1, 1)) {
+                if (entity instanceof Item) {
+                    Item item = (Item) entity;
+                    if (item.getItemStack().getType() == type.getMaterial()) {
+                        nearbyItems += item.getItemStack().getAmount();
+                    }
+                }
+            }
+
+            if (nearbyItems >= type.getMaxItems()) {
+                return;
+            }
+
             ItemStack itemStack = type.getItemStack();
             Item item = location.getWorld().dropItem(location, itemStack);
             item.setVelocity(new Vector(0, 0.1, 0));
             item.setPickupDelay(0);
 
-            // Item nach 10 Sekunden entfernen
+            // Item nach 30 Sekunden entfernen
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (item != null && !item.isDead()) {
                     item.remove();
+                    currentAmount = Math.max(0, currentAmount - 1);
                 }
-            }, 200L);
+            }, 600L);
         }
 
         public GeneratorType getType() {
             return type;
         }
-
-        public void setLevel(int level) {
-            // Keine Upgrades in diesem System
-        }
-
-        public int getLevel() {
-            return level;
-        }
     }
 
     public enum GeneratorType {
-        BRONZE("§6Bronze", Material.CLAY_BRICK, new int[]{2, 2, 2, 2}),
-        IRON("§7Eisen", Material.IRON_INGOT, new int[]{4, 4, 4, 4}),
-        GOLD("§eGold", Material.GOLD_INGOT, new int[]{10, 10, 10, 10});
+        BRONZE("§6Bronze", Material.CLAY_BRICK, 2, 128),
+        IRON("§7Eisen", Material.IRON_INGOT, 20, 32),
+        GOLD("§eGold", Material.GOLD_INGOT, 60, 16);
 
         private final String displayName;
         private final Material material;
-        private final int[] delays;
+        private final int delay;
+        private final int maxItems;
 
-        GeneratorType(String displayName, Material material, int[] delays) {
+        GeneratorType(String displayName, Material material, int delay, int maxItems) {
             this.displayName = displayName;
             this.material = material;
-            this.delays = delays;
+            this.delay = delay;
+            this.maxItems = maxItems;
         }
 
         public String getDisplayName() {
             return displayName;
         }
 
-        public ItemStack getItemStack() {
-            return new ItemStack(material, 1);
+        public Material getMaterial() {
+            return material;
         }
 
-        public int getBaseDelay(int level) {
-            return delays[Math.min(level - 1, delays.length - 1)];
+        public ItemStack getItemStack() {
+            ItemStack item = new ItemStack(material, 1);
+            ItemMeta meta = item.getItemMeta();
+            meta.setDisplayName(displayName);
+            item.setItemMeta(meta);
+            return item;
+        }
+
+        public int getDelay() {
+            return delay;
+        }
+
+        public int getMaxItems() {
+            return maxItems;
         }
     }
 }

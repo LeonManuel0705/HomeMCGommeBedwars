@@ -70,12 +70,14 @@ public class StartCommand implements CommandExecutor {
                 player.sendMessage("§8§m====================================");
                 return true;
             }
-
             game.broadcast("§c§lSPIEL GESTOPPT!");
             game.broadcast("§7Das Spiel wurde von einem Teammitglied beendet.");
             game.forceEnd();
             game.removePlayer(player);
             player.sendMessage(BedWars.PREFIX + "§aSpiel wurde gestoppt!");
+            player.teleport(plugin.getBedWarsLobby().getLobbySpawn());
+            player.getInventory().clear();
+            plugin.getBedWarsLobby().giveItems(player);
             return true;
         }
 

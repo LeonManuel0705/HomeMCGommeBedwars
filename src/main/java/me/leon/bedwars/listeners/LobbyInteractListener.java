@@ -35,7 +35,6 @@ public class LobbyInteractListener implements Listener {
             return;
         }
 
-        // Nur in der BedWars-Lobby
         if (!plugin.getBedWarsLobby().isInLobby(player.getUniqueId())) {
             return;
         }

@@ -30,6 +30,8 @@ commands:
     aliases:
       - spawn
       - hub
+  build:
+    description: Aktiviere den Baumodus
 
 
 permissions:
@@ -38,4 +40,7 @@ permissions:
         default: op
     bedwars.forcestart:
         description: Erlaubt die Nutzung des Start Befehls
-        default: true
+        default: op
+    bedwars.lobby.build:
+        description: Erlaubt die Nutzung des Baumodus im Lobby Bereich
+        default: op

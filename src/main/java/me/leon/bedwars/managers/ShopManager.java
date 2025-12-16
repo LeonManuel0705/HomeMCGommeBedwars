@@ -304,10 +304,15 @@ public class ShopManager {
     private boolean hasEnoughCurrency(Player player, ShopItem item) {
         int has = 0;
         Material currency = getCurrencyMaterial(item.getCurrency());
+        String requiredName = getCurrencyDisplayName(item.getCurrency());
 
         for (ItemStack stack : player.getInventory().getContents()) {
             if (stack != null && stack.getType() == currency) {
-                has += stack.getAmount();
+                if (stack.hasItemMeta() && stack.getItemMeta().hasDisplayName()) {
+                    if (stack.getItemMeta().getDisplayName().equals(requiredName)) {
+                        has += stack.getAmount();
+                    }
+                }
             }
         }
 
@@ -317,17 +322,31 @@ public class ShopManager {
     private void removeCurrency(Player player, ShopItem item) {
         int toRemove = item.getPrice();
         Material currency = getCurrencyMaterial(item.getCurrency());
+        String requiredName = getCurrencyDisplayName(item.getCurrency());
 
         for (ItemStack stack : player.getInventory().getContents()) {
             if (stack != null && stack.getType() == currency) {
-                if (stack.getAmount() >= toRemove) {
-                    stack.setAmount(stack.getAmount() - toRemove);
-                    break;
-                } else {
-                    toRemove -= stack.getAmount();
-                    stack.setAmount(0);
+                if (stack.hasItemMeta() && stack.getItemMeta().hasDisplayName()) {
+                    if (stack.getItemMeta().getDisplayName().equals(requiredName)) {
+                        if (stack.getAmount() >= toRemove) {
+                            stack.setAmount(stack.getAmount() - toRemove);
+                            break;
+                        } else {
+                            toRemove -= stack.getAmount();
+                            stack.setAmount(0);
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    private String getCurrencyDisplayName(ShopCurrency currency) {
+        switch (currency) {
+            case BRONZE: return "§6Bronze";
+            case IRON: return "§7Eisen";
+            case GOLD: return "§eGold";
+            default: return "";
         }
     }
 

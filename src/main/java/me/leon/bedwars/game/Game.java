@@ -41,6 +41,8 @@ public class Game {
 
     private final Set<Location> placedBlocks;
 
+    private boolean forceStopped = false; // Neues Flag
+
     private BukkitRunnable gameTask;
 
     public Game(BedWars plugin, MapData mapData) {
@@ -76,7 +78,7 @@ public class Game {
             world.setStorm(false);
             world.setThundering(false);
             world.setWeatherDuration(Integer.MAX_VALUE);
-            world.setTime(6000); // Tag
+            world.setTime(6000);
         }
     }
 
@@ -106,8 +108,8 @@ public class Game {
         player.setFoodLevel(20);
         player.getInventory().clear();
         player.getInventory().setArmorContents(null);
-        player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
 
+        // AutoNick aktivieren
         if (CoreAPI.isCoreAvailable()) {
             if (CoreAPI.getCore().getNickManager().hasAutoNick(player.getUniqueId())) {
                 if (!CoreAPI.getCore().getNickManager().isNicked(player.getUniqueId())) {
@@ -118,7 +120,7 @@ public class Game {
 
         giveTeamSelector(player);
 
-        broadcast("§a" + getPlayerName(player) + " §7hat das Spiel betreten! §8(§e" +
+        broadcast("§a" + getPlayerDisplayName(player) + " §7hat das Spiel betreten! §8(§e" +
                 getPlayers().size() + "§7/§e" + mapData.getMaxPlayers() + "§8)");
 
         updateScoreboard(player);
@@ -144,7 +146,7 @@ public class Game {
         resetNameTag(player);
 
         if (state == GameState.LOBBY) {
-            broadcast("§c" + getPlayerName(player) + " §7hat das Spiel verlassen! §8(§e" +
+            broadcast("§c" + getPlayerDisplayName(player) + " §7hat das Spiel verlassen! §8(§e" +
                     getPlayers().size() + "§7/§e" + mapData.getMaxPlayers() + "§8)");
         } else if (state == GameState.INGAME) {
             checkWinCondition();
@@ -212,11 +214,12 @@ public class Game {
         if (gameTask != null) {
             gameTask.cancel();
         }
-        lobbyCountdown = 5;
+        lobbyCountdown = 0;
         startGame();
     }
 
     public void forceEnd() {
+        forceStopped = true; // Flag setzen
         endGame(null);
     }
 
@@ -262,6 +265,8 @@ public class Game {
     }
 
     private void updateNameTag(Player player, TeamData team) {
+        String displayName = getPlayerDisplayName(player);
+
         for (Player online : getOnlinePlayers()) {
             Scoreboard board = online.getScoreboard();
             if (board == null || board == Bukkit.getScoreboardManager().getMainScoreboard()) {
@@ -276,19 +281,21 @@ public class Game {
                 sbTeam.setCanSeeFriendlyInvisibles(true);
             }
 
-            if (!sbTeam.hasEntry(player.getName())) {
-                sbTeam.addEntry(player.getName());
+            if (!sbTeam.hasEntry(displayName)) {
+                sbTeam.addEntry(displayName);
             }
         }
     }
 
     private void resetNameTag(Player player) {
+        String displayName = getPlayerDisplayName(player);
+
         for (Player online : Bukkit.getOnlinePlayers()) {
             Scoreboard board = online.getScoreboard();
             if (board != null) {
                 for (Team team : board.getTeams()) {
-                    if (team.hasEntry(player.getName())) {
-                        team.removeEntry(player.getName());
+                    if (team.hasEntry(displayName)) {
+                        team.removeEntry(displayName);
                     }
                 }
             }
@@ -329,22 +336,22 @@ public class Game {
             alivePlayers.remove(uuid);
             spectators.add(uuid);
 
-            String deathMsg = team.getColor() + "§l" + getPlayerName(player);
+            String deathMsg = team.getColor() + "§l" + getPlayerDisplayName(player);
             if (killer != null) {
                 TeamData killerTeam = playerTeams.get(killer.getUniqueId());
 
-                String customMsg = plugin.getGadgetManager().getKillMessage(killer.getUniqueId(), player.getName());
+                String customMsg = plugin.getGadgetManager().getKillMessage(killer.getUniqueId(), getPlayerDisplayName(player));
                 if (customMsg != null) {
                     broadcast(customMsg);
                 } else {
                     deathMsg += " §7wurde von " + killerTeam.getColor() + "§l" +
-                            getPlayerName(killer) + " §7getötet!";
+                            getPlayerDisplayName(killer) + " §7getötet!";
                     deathMsg += " §b§lFINAL KILL!";
                     broadcast(deathMsg);
                 }
             } else {
                 deathMsg += " §7ist gestorben!";
-                deathMsg += " §b§lFINAL DEATH!";
+                deathMsg += " §c§lFINAL KILL!";
                 broadcast(deathMsg);
             }
 
@@ -352,11 +359,11 @@ public class Game {
 
             checkWinCondition();
         } else {
-            String deathMsg = team.getColor() + "§l" + getPlayerName(player);
+            String deathMsg = team.getColor() + "§l" + getPlayerDisplayName(player);
             if (killer != null) {
                 TeamData killerTeam = playerTeams.get(killer.getUniqueId());
                 deathMsg += " §7wurde von " + killerTeam.getColor() + "§l" +
-                        getPlayerName(killer) + " §7getötet!";
+                        getPlayerDisplayName(killer) + " §7getötet!";
             } else {
                 deathMsg += " §7ist gestorben!";
             }
@@ -384,7 +391,7 @@ public class Game {
 
         broadcast("§f§lBETT ZERSTÖRUNG > " + team.getColor() + "§l" + team.getName() +
                 " Bett §7wurde von " + breakerTeam.getColor() + "§l" +
-                getPlayerName(breaker) + " §7zerstört!");
+                getPlayerDisplayName(breaker) + " §7zerstört!");
 
         playSound(Sound.ENDERDRAGON_GROWL);
 
@@ -475,7 +482,10 @@ public class Game {
 
         broadcast("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-        updateAllStats(winnerTeam);
+        // Nur Stats updaten, wenn nicht force-stopped
+        if (!forceStopped) {
+            updateAllStats(winnerTeam);
+        }
 
         recoverMap();
 
@@ -585,7 +595,7 @@ public class Game {
                 String status = hasBed(team) ? "§a✓" : "§c✗";
                 int alive = getAlivePlayersInTeam(team);
 
-                setScore(obj, team.getColor() + team.getName() + " " + status + " §7" + alive, line--);
+                setScore(obj, team.getColor() + team.getShortName() + " " + status + " §7" + alive, line--);
             }
 
             setScore(obj, "§3", line--);
@@ -645,10 +655,10 @@ public class Game {
         }
     }
 
-    private String getPlayerName(Player player) {
+    private String getPlayerDisplayName(Player player) {
         if (CoreAPI.isCoreAvailable()) {
             if (CoreAPI.getCore().getNickManager().isNicked(player.getUniqueId())) {
-                return "§7" + CoreAPI.getCore().getNickManager().getDisplayName(player.getUniqueId());
+                return CoreAPI.getCore().getNickManager().getDisplayName(player.getUniqueId());
             }
             return CoreAPI.getRankColor(player) + player.getName();
         }
@@ -713,6 +723,8 @@ public class Game {
     }
 
     public void shutdown() {
+        forceStopped = true;
+
         if (gameTask != null) {
             gameTask.cancel();
         }
@@ -729,7 +741,6 @@ public class Game {
             }
 
             plugin.getLobbyManager().sendToLobby(player);
-            player.teleport(plugin.getBedWarsLobby().getLobbySpawn());
         }
 
         recoverMap();

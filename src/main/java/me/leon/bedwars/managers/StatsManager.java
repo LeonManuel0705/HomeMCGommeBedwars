@@ -132,6 +132,37 @@ public class StatsManager {
         });
     }
 
+    public boolean resetStats(UUID uuid) {
+        try {
+            PreparedStatement ps = plugin.getMySQL().getConnection().prepareStatement(
+                    "UPDATE bw_stats SET kills = 0, deaths = 0, wins = 0, losses = 0, " +
+                            "beds_destroyed = 0, games_played = 0, current_winstreak = 0, " +
+                            "highest_winstreak = 0 WHERE uuid = ?"
+            );
+            ps.setString(1, uuid.toString());
+            ps.executeUpdate();
+            ps.close();
+
+            // Cache aktualisieren
+            PlayerStats stats = statsCache.get(uuid);
+            if (stats != null) {
+                stats.kills = 0;
+                stats.deaths = 0;
+                stats.wins = 0;
+                stats.losses = 0;
+                stats.bedsDestroyed = 0;
+                stats.gamesPlayed = 0;
+                stats.currentWinstreak = 0;
+                stats.highestWinstreak = 0;
+            }
+
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public void addCoins(UUID uuid, int amount) {
         if (CoreAPI.isCoreAvailable()) {
             Bukkit.getScheduler().runTask(plugin, () -> {

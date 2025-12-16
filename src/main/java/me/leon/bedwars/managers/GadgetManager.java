@@ -377,7 +377,7 @@ public class GadgetManager {
             case "KILL_MSG_BOOM":
                 return "§4§l💥 BOOM! §c" + victimName + " §7wurde weggesprengt!";
             case "KILL_MSG_RIP":
-                return "§7§l✟ R.I.P §c" + victimName + " §8(F zum Bezahlen der Respekte)";
+                return "§7§l✟ R.I.P §c" + victimName + " §8(F in den Chat)";
             case "KILL_MSG_OWNED":
                 return "§c§l⚔ OWNED! §c" + victimName + " §7wurde zerstört!";
             default:
