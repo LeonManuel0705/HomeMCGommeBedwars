@@ -32,6 +32,10 @@ commands:
       - hub
   build:
     description: Aktiviere den Baumodus
+  hologram:
+    description: Verwalte Holograms
+    aliases:
+      - holo
 
 
 permissions:

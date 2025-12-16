@@ -121,6 +121,7 @@ public class BedWars extends JavaPlugin {
         getCommand("joinme").setExecutor(new JoinMeCommand(this));
         getCommand("lobby").setExecutor(new LobbyCommand(this));
         getCommand("build").setExecutor(new BuildCommand(this));
+        getCommand("hologram").setExecutor(new HologramCommand(this));
     }
 
     private void registerListeners() {
@@ -159,6 +160,7 @@ public class BedWars extends JavaPlugin {
 
         // Chat Events
         pm.registerEvents(new ChatListener(this), this);
+        pm.registerEvents(new LobbyChatListener(this), this);
 
         // Game-specific Events
         pm.registerEvents(new TeamSelectorListener(this), this);

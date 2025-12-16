@@ -134,18 +134,23 @@ public class BedWarsLobby {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective obj = board.registerNewObjective("lobby", "dummy");
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-        obj.setDisplayName("§c§lBED§f§lWARS");
+        obj.setDisplayName("§c§l▸ BED§f§lWARS §c§l◂");
 
         int line = 15;
 
-        setScore(obj, "§1", line--);
-        setScore(obj, "§7Spieler:", line--);
-        setScore(obj, "  §e" + Bukkit.getOnlinePlayers().size(), line--);
-        setScore(obj, "§2", line--);
+        setScore(obj, "§8┌─────────────────┐", line--);
+        setScore(obj, "§f", line--);
+
+        setScore(obj, "§b▸ SPIELER", line--);
+        int onlinePlayers = Bukkit.getOnlinePlayers().size();
+        setScore(obj, "§7Online:        §f" + onlinePlayers, line--);
+        setScore(obj, "§f", line--);
 
         int lobbyCount = 0;
         int ingameCount = 0;
+        int totalGames = 0;
         for (me.leon.bedwars.game.Game game : plugin.getGameManager().getAllGames()) {
+            totalGames++;
             if (game.getState() == me.leon.bedwars.game.GameState.LOBBY) {
                 lobbyCount++;
             } else if (game.getState() == me.leon.bedwars.game.GameState.INGAME) {
@@ -153,30 +158,37 @@ public class BedWarsLobby {
             }
         }
 
-        setScore(obj, "§7Spiele:", line--);
-        setScore(obj, "  §aLobby: §e" + lobbyCount, line--);
-        setScore(obj, "  §cIngame: §e" + ingameCount, line--);
-        setScore(obj, "§3", line--);
+        setScore(obj, "§6▸ SPIELE", line--);
+        setScore(obj, "§7Verfügbar:     §a" + lobbyCount, line--);
+        setScore(obj, "§7Laufend:       §c" + ingameCount, line--);
+        setScore(obj, "§7Gesamt:        §e" + totalGames, line--);
+        setScore(obj, "§f", line--);
 
         if (CoreAPI.isCoreAvailable()) {
             try {
                 int coins = CoreAPI.getCore().getCoinManager().getCoins(player.getUniqueId());
-                setScore(obj, "§7Coins:", line--);
-                setScore(obj, "  §6" + coins, line--);
-                setScore(obj, "§4", line--);
+                setScore(obj, "§e▸ WÄHRUNG", line--);
+                setScore(obj, "§7Coins:         §6" + coins, line--);
+                setScore(obj, "§f", line--);
             } catch (Exception e) {
             }
         }
 
         me.leon.bedwars.managers.StatsManager.PlayerStats stats = plugin.getStatsManager().getStats(player.getUniqueId());
         if (stats != null) {
-            setScore(obj, "§7Wins:", line--);
-            setScore(obj, "  §a" + stats.wins, line--);
-            setScore(obj, "§7Kills:", line--);
-            setScore(obj, "  §c" + stats.kills, line--);
-            setScore(obj, "§5", line--);
+            setScore(obj, "§5▸ DEINE STATS", line--);
+            setScore(obj, "§7Siege:         §a" + stats.wins, line--);
+            setScore(obj, "§7Kills:         §c" + stats.kills, line--);
+
+            double winRatio = 0;
+            if (stats.kills > 0) {
+                winRatio = Math.round((double) stats.wins / stats.kills * 100) / 100.0;
+            }
+            setScore(obj, "§7K/D Ratio:     §f" + winRatio, line--);
+            setScore(obj, "§f", line--);
         }
 
+        setScore(obj, "§8└─────────────────┘", line--);
         setScore(obj, "§eplay.homemc.org", line--);
 
         player.setScoreboard(board);
@@ -190,27 +202,34 @@ public class BedWarsLobby {
         if (!CoreAPI.isCoreAvailable()) return;
 
         try {
-            // === Header (oben im Tab) ===
-            String header = "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                    "§c§lBED§f§lWARS\n" +
-                    "§7play.homemc.org\n" +
-                    "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            String header = "§c§lBED§f§lWARS\n§7play.homemc.org";
 
-            // === Stats Zeile ===
             me.leon.bedwars.managers.StatsManager.PlayerStats stats = plugin.getStatsManager().getStats(player.getUniqueId());
             String statsLine = "";
             if (stats != null) {
-                statsLine = "§7Deine Stats: §e" + stats.wins + " Wins §8| §c" + stats.kills + " Kills\n";
+                int coinBalance = 0;
+                try {
+                    coinBalance = CoreAPI.getCore().getCoinManager().getCoins(player.getUniqueId());
+                } catch (Exception e) {
+                }
+
+                statsLine = "§7Siege: §a" + stats.wins + " §7| Kills: §c" + stats.kills + " §7| Coins: §6" + coinBalance;
             }
 
-            // === Footer (unten im Tab) ===
-            String footer = "\n§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
-                    statsLine +
-                    "§7Online: §a" + Bukkit.getOnlinePlayers().size() + " §8| " +
-                    "§7Spiele: §e" + plugin.getGameManager().getAllGames().size() + "\n" +
-                    "§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━";
+            int onlinePlayers = Bukkit.getOnlinePlayers().size();
+            int lobbyGames = 0;
+            int ingameGames = 0;
 
-            // === Reflection für ältere Versionen ===
+            for (me.leon.bedwars.game.Game game : plugin.getGameManager().getAllGames()) {
+                if (game.getState() == me.leon.bedwars.game.GameState.LOBBY) {
+                    lobbyGames++;
+                } else if (game.getState() == me.leon.bedwars.game.GameState.INGAME) {
+                    ingameGames++;
+                }
+            }
+
+            String footer = "§7Online: §a" + onlinePlayers + " §7| Verfügbar: §a" + lobbyGames + " §7| Laufend: §c" + ingameGames;
+
             String version = getServerVersion();
 
             Class<?> craftPlayerClass = Class.forName("org.bukkit.craftbukkit." + version + ".entity.CraftPlayer");

@@ -739,8 +739,10 @@ public class Game {
                     CoreAPI.getCore().getNickManager().unnickPlayer(player);
                 }
             }
-
+            player.getInventory().clear();
+            player.getInventory().setArmorContents(null);
             plugin.getLobbyManager().sendToLobby(player);
+            plugin.getBedWarsLobby().giveItems(player);
         }
 
         recoverMap();

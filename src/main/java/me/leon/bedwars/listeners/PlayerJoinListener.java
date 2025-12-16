@@ -4,6 +4,7 @@ import me.leon.bedwars.BedWars;
 import me.leon.bedwars.lobby.BedWarsLobby;
 import me.leon.core.Core;
 import me.leon.core.utils.CoreAPI;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -40,5 +41,15 @@ public class PlayerJoinListener implements Listener {
         player.setFoodLevel(20);
         player.setGameMode(GameMode.SURVIVAL);
         player.setAllowFlight(player.hasPermission("homemc.fly"));
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline() && CoreAPI.isCoreAvailable()) {
+                try {
+                    CoreAPI.getCore().getNickManager().updatePlayerDisplay(player);
+                } catch (Exception e) {
+                }
+            }
+        }, 10L);
     }
 }
+

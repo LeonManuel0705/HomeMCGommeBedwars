@@ -143,7 +143,6 @@ public class StatsManager {
             ps.executeUpdate();
             ps.close();
 
-            // Cache aktualisieren
             PlayerStats stats = statsCache.get(uuid);
             if (stats != null) {
                 stats.kills = 0;

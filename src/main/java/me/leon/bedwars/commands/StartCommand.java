@@ -77,6 +77,7 @@ public class StartCommand implements CommandExecutor {
             player.sendMessage(BedWars.PREFIX + "§aSpiel wurde gestoppt!");
             player.teleport(plugin.getBedWarsLobby().getLobbySpawn());
             player.getInventory().clear();
+            player.getInventory().setArmorContents(null);
             plugin.getBedWarsLobby().giveItems(player);
             return true;
         }

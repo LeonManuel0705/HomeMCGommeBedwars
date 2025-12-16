@@ -51,7 +51,7 @@ public class StatsCommand implements CommandExecutor {
         if (CoreAPI.isCoreAvailable()) {
             try {
                 int coins = CoreAPI.getCore().getCoinManager().getCoins(player.getUniqueId());
-                player.sendMessage(Core.PREFIX + "§7Coins: §6§l" + coins);
+                player.sendMessage("§7Coins: §6§l" + coins);
             } catch (Exception e) {
             }
         }
@@ -59,5 +59,6 @@ public class StatsCommand implements CommandExecutor {
         player.sendMessage("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
         return true;
+
     }
 }
