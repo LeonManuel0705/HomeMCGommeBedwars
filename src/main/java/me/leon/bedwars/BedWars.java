@@ -2,6 +2,7 @@ package me.leon.bedwars;
 
 import me.leon.bedwars.commands.*;
 import me.leon.bedwars.listeners.*;
+import me.leon.bedwars.lobby.BedWarsLobby;
 import me.leon.bedwars.managers.*;
 import me.leon.core.managers.RankManager;
 import me.leon.core.utils.CoreAPI;
@@ -33,6 +34,7 @@ public class BedWars extends JavaPlugin {
     private HologramManager hologramManager;
     private PartyIntegration partyIntegration;
     private JoinMeIntegration joinMeIntegration;
+    private BedWarsLobby bedWarsLobby;
 
     @Override
     public void onEnable() {
@@ -73,6 +75,10 @@ public class BedWars extends JavaPlugin {
             hologramManager.shutdown();
         }
 
+        if (bedWarsLobby != null) {
+            bedWarsLobby.shutdown();
+        }
+
         if (mySQL != null) {
             mySQL.disconnect();
         }
@@ -93,13 +99,14 @@ public class BedWars extends JavaPlugin {
         hologramManager = new HologramManager(this);
         partyIntegration = new PartyIntegration(this);
         joinMeIntegration = new JoinMeIntegration(this);
+        bedWarsLobby = new BedWarsLobby(this);
         gameManager = new GameManager(this);
 
         mapManager.loadMaps();
 
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
         getServer().getMessenger().registerIncomingPluginChannel(this, "BungeeCord",
-                new PluginMessageListener(this));
+                new BedWarsPluginMessageListener(this));
     }
 
     private void registerCommands() {
@@ -116,26 +123,48 @@ public class BedWars extends JavaPlugin {
     private void registerListeners() {
         PluginManager pm = Bukkit.getPluginManager();
 
+        // Player Events
         pm.registerEvents(new PlayerJoinListener(this), this);
         pm.registerEvents(new PlayerQuitListener(this), this);
         pm.registerEvents(new PlayerInteractListener(this), this);
         pm.registerEvents(new PlayerMoveListener(this), this);
-        pm.registerEvents(new BlockBreakListener(this), this);
-        pm.registerEvents(new BlockPlaceListener(this), this);
-        pm.registerEvents(new EntityDamageListener(this), this);
-        pm.registerEvents(new EntityDamageByEntityListener(this), this);
         pm.registerEvents(new PlayerDeathListener(this), this);
         pm.registerEvents(new PlayerRespawnListener(this), this);
-        pm.registerEvents(new FoodLevelChangeListener(this), this);
         pm.registerEvents(new PlayerBedEnterListener(this), this);
-        pm.registerEvents(new InventoryClickListener(this), this);
         pm.registerEvents(new PlayerPickupItemListener(this), this);
         pm.registerEvents(new PlayerDropItemListener(this), this);
-        pm.registerEvents(new ChatListener(this), this);
+
+        // Block Events
+        pm.registerEvents(new BlockBreakListener(this), this);
+        pm.registerEvents(new BlockPlaceListener(this), this);
+
+        // Entity Events
+        pm.registerEvents(new EntityDamageListener(this), this);
+        pm.registerEvents(new EntityDamageByEntityListener(this), this);
+        pm.registerEvents(new EntitySpawnListener(this), this);
+
+        // Inventory Events
+        pm.registerEvents(new InventoryClickListener(this), this);
+        pm.registerEvents(new CraftingListener(this), this);
+
+        // Projectile Events
         pm.registerEvents(new ProjectileLaunchListener(this), this);
         pm.registerEvents(new ProjectileHitListener(this), this);
+
+        // Explosion Events
+        pm.registerEvents(new ExplosionListener(this), this);
+
+        // Chat Events
+        pm.registerEvents(new ChatListener(this), this);
+
+        // Game-specific Events
         pm.registerEvents(new TeamSelectorListener(this), this);
         pm.registerEvents(new LobbyItemListener(this), this);
+        pm.registerEvents(new LobbyInteractListener(this), this);
+        pm.registerEvents(new NavigatorListener(this), this);
+
+        // Food Events
+        pm.registerEvents(new FoodLevelChangeListener(this), this);
     }
 
     private void createTables() {
@@ -269,6 +298,10 @@ public class BedWars extends JavaPlugin {
 
     public JoinMeIntegration getJoinMeIntegration() {
         return joinMeIntegration;
+    }
+
+    public BedWarsLobby getBedWarsLobby() {
+        return bedWarsLobby;
     }
 
     public RankManager getRankManager() {

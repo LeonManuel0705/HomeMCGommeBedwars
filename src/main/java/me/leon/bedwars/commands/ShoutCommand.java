@@ -41,7 +41,7 @@ public class ShoutCommand implements CommandExecutor {
             message.append(arg).append(" ");
         }
 
-        game.broadcast("§6[SHOUT] §r" + player.getName() + "§7: §f" + message.toString().trim());
+        game.broadcast("§7[SHOUT] §r" + plugin.getRankManager().getRankColor(player) + player.getName() + "§7: §f" + plugin.getRankManager().getRankColor(player) + message.toString().trim());
 
         return true;
     }

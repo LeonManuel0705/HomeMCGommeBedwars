@@ -97,7 +97,7 @@ public class GadgetManager {
 
         gadgets.put("BED_DESTROY_WITHER", new Gadget(
                 "BED_DESTROY_WITHER", "§8Wither-Effekt",
-                "Wither Sound beim Zerstören!", Material.SKULL_ITEM, 3, (short) 1,
+                "Wither Sound beim Zerstören!", Material.SKULL_ITEM, (short) 1,
                 1200, GadgetType.BED_DESTROY, 0
         ));
 
@@ -288,6 +288,15 @@ public class GadgetManager {
 
             case "DANCE_MOVES":
                 performDance(player);
+                break;
+
+            case "BED_DESTROY_EXPLOSION":
+                loc.getWorld().playEffect(loc, Effect.EXPLOSION_HUGE, 0);
+                loc.getWorld().playSound(loc, Sound.EXPLODE, 2.0f, 1.0f);
+                break;
+
+            case "BED_DESTROY_WITHER":
+                loc.getWorld().playSound(loc, Sound.WITHER_SPAWN, 1.5f, 1.0f);
                 break;
         }
     }

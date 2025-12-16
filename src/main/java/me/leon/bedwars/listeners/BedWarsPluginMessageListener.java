@@ -7,12 +7,12 @@ import me.leon.bedwars.managers.JoinMeIntegration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
-public class PluginMessageListener implements PluginMessageListener {
+public class BedWarsPluginMessageListener implements PluginMessageListener {
 
     private final BedWars plugin;
     private final JoinMeIntegration joinMeIntegration;
 
-    public PluginMessageListener(BedWars plugin) {
+    public BedWarsPluginMessageListener(BedWars plugin) {
         this.plugin = plugin;
         this.joinMeIntegration = new JoinMeIntegration(plugin);
     }
@@ -42,6 +42,8 @@ public class PluginMessageListener implements PluginMessageListener {
             String gameName = in.readUTF();
             int currentPlayers = in.readInt();
             int maxPlayers = in.readInt();
+
+            // TODO: Implementiere die Logik für JoinMe Message
 
         } catch (Exception e) {
             plugin.getLogger().severe("Fehler beim Verarbeiten der JoinMe Message!");

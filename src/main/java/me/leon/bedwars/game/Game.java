@@ -1,17 +1,21 @@
 package me.leon.bedwars.game;
 
 import me.leon.bedwars.BedWars;
+import me.leon.bedwars.managers.GadgetManager;
 import me.leon.bedwars.managers.MapData;
+import me.leon.bedwars.managers.StatsManager;
 import me.leon.bedwars.managers.TeamData;
 import me.leon.bedwars.utils.ItemBuilder;
 import me.leon.core.utils.CoreAPI;
 import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +29,6 @@ public class Game {
     private GameState state;
     private int lobbyCountdown;
     private int gameTime;
-    private int protectionTime;
 
     private final Map<UUID, TeamData> playerTeams;
     private final Map<TeamData, Set<UUID>> teamPlayers;
@@ -35,6 +38,8 @@ public class Game {
     private final Map<UUID, Integer> kills;
     private final Map<UUID, Integer> deaths;
     private final Map<UUID, Integer> bedsDestroyed;
+
+    private final Set<Location> placedBlocks;
 
     private BukkitRunnable gameTask;
 
@@ -46,7 +51,6 @@ public class Game {
         this.state = GameState.LOBBY;
         this.lobbyCountdown = 60;
         this.gameTime = 0;
-        this.protectionTime = 10;
 
         this.playerTeams = new ConcurrentHashMap<>();
         this.teamPlayers = new ConcurrentHashMap<>();
@@ -56,10 +60,23 @@ public class Game {
         this.kills = new ConcurrentHashMap<>();
         this.deaths = new ConcurrentHashMap<>();
         this.bedsDestroyed = new ConcurrentHashMap<>();
+        this.placedBlocks = ConcurrentHashMap.newKeySet();
 
         for (TeamData team : mapData.getTeams()) {
             teamPlayers.put(team, ConcurrentHashMap.newKeySet());
             bedStatus.put(team, true);
+        }
+
+        fixWeatherAndTime();
+    }
+
+    private void fixWeatherAndTime() {
+        World world = mapData.getLobby().getWorld();
+        if (world != null) {
+            world.setStorm(false);
+            world.setThundering(false);
+            world.setWeatherDuration(Integer.MAX_VALUE);
+            world.setTime(6000); // Tag
         }
     }
 
@@ -89,6 +106,15 @@ public class Game {
         player.setFoodLevel(20);
         player.getInventory().clear();
         player.getInventory().setArmorContents(null);
+        player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
+
+        if (CoreAPI.isCoreAvailable()) {
+            if (CoreAPI.getCore().getNickManager().hasAutoNick(player.getUniqueId())) {
+                if (!CoreAPI.getCore().getNickManager().isNicked(player.getUniqueId())) {
+                    CoreAPI.getCore().getNickManager().nickPlayer(player);
+                }
+            }
+        }
 
         giveTeamSelector(player);
 
@@ -114,6 +140,8 @@ public class Game {
         spectators.remove(uuid);
 
         player.getScoreboard().clearSlot(DisplaySlot.SIDEBAR);
+
+        resetNameTag(player);
 
         if (state == GameState.LOBBY) {
             broadcast("§c" + getPlayerName(player) + " §7hat das Spiel verlassen! §8(§e" +
@@ -180,16 +208,26 @@ public class Game {
         gameTask.runTaskTimer(plugin, 20L, 20L);
     }
 
+    public void forceStart() {
+        if (gameTask != null) {
+            gameTask.cancel();
+        }
+        lobbyCountdown = 5;
+        startGame();
+    }
+
+    public void forceEnd() {
+        endGame(null);
+    }
+
     private void startGame() {
-        state = GameState.PROTECTION;
+        state = GameState.INGAME;
 
         broadcast("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         broadcast("§c§lBedWars");
         broadcast("");
         broadcast("§7Schütze dein Bett und zerstöre");
         broadcast("§7die Betten deiner Gegner!");
-        broadcast("");
-        broadcast("§eErster Schutz: §c10 Sekunden");
         broadcast("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
         for (Player player : getOnlinePlayers()) {
@@ -201,47 +239,60 @@ public class Game {
                 player.teleport(team.getSpawn());
                 alivePlayers.add(player.getUniqueId());
 
-                giveStartItems(player, team);
+                updateNameTag(player, team);
             }
         }
 
         plugin.getGeneratorManager().startGenerators(this);
+        clearChests();
 
-        startProtectionPhase();
+        startGameLoop();
     }
 
-    private void startProtectionPhase() {
-        new BukkitRunnable() {
-            int remaining = protectionTime;
-
-            @Override
-            public void run() {
-                if (state != GameState.PROTECTION) {
-                    cancel();
-                    return;
-                }
-
-                remaining--;
-
-                if (remaining == 5 || remaining == 3 || remaining <= 2) {
-                    broadcast("§eSchutzzeit endet in §c" + remaining + " §eSekunde" +
-                            (remaining == 1 ? "" : "n") + "!");
-                }
-
-                for (Player player : getOnlinePlayers()) {
-                    updateScoreboard(player);
-                }
-
-                if (remaining <= 0) {
-                    state = GameState.INGAME;
-                    broadcast("§cDie Schutzzeit ist vorbei!");
-                    playSound(Sound.WITHER_SPAWN);
-                    cancel();
-
-                    startGameLoop();
+    private void clearChests() {
+        World world = mapData.getLobby().getWorld();
+        for (Chunk chunk : world.getLoadedChunks()) {
+            for (org.bukkit.block.BlockState state : chunk.getTileEntities()) {
+                if (state instanceof org.bukkit.block.Chest) {
+                    org.bukkit.block.Chest chest = (org.bukkit.block.Chest) state;
+                    chest.getInventory().clear();
                 }
             }
-        }.runTaskTimer(plugin, 20L, 20L);
+        }
+    }
+
+    private void updateNameTag(Player player, TeamData team) {
+        for (Player online : getOnlinePlayers()) {
+            Scoreboard board = online.getScoreboard();
+            if (board == null || board == Bukkit.getScoreboardManager().getMainScoreboard()) {
+                board = Bukkit.getScoreboardManager().getNewScoreboard();
+                online.setScoreboard(board);
+            }
+
+            Team sbTeam = board.getTeam(team.getName());
+            if (sbTeam == null) {
+                sbTeam = board.registerNewTeam(team.getName());
+                sbTeam.setPrefix(team.getColor());
+                sbTeam.setCanSeeFriendlyInvisibles(true);
+            }
+
+            if (!sbTeam.hasEntry(player.getName())) {
+                sbTeam.addEntry(player.getName());
+            }
+        }
+    }
+
+    private void resetNameTag(Player player) {
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            Scoreboard board = online.getScoreboard();
+            if (board != null) {
+                for (Team team : board.getTeams()) {
+                    if (team.hasEntry(player.getName())) {
+                        team.removeEntry(player.getName());
+                    }
+                }
+            }
+        }
     }
 
     private void startGameLoop() {
@@ -263,30 +314,6 @@ public class Game {
         gameTask.runTaskTimer(plugin, 20L, 20L);
     }
 
-    private void giveStartItems(Player player, TeamData team) {
-        ItemStack sword = new ItemStack(Material.WOOD_SWORD);
-        player.getInventory().addItem(sword);
-
-        Color armorColor = team.getColor();
-        ItemStack helmet = new ItemBuilder(Material.LEATHER_HELMET)
-                .setLeatherColor(armorColor)
-                .build();
-        ItemStack chestplate = new ItemBuilder(Material.LEATHER_CHESTPLATE)
-                .setLeatherColor(armorColor)
-                .build();
-        ItemStack leggings = new ItemBuilder(Material.LEATHER_LEGGINGS)
-                .setLeatherColor(armorColor)
-                .build();
-        ItemStack boots = new ItemBuilder(Material.LEATHER_BOOTS)
-                .setLeatherColor(armorColor)
-                .build();
-
-        player.getInventory().setHelmet(helmet);
-        player.getInventory().setChestplate(chestplate);
-        player.getInventory().setLeggings(leggings);
-        player.getInventory().setBoots(boots);
-    }
-
     public void handlePlayerDeath(Player player, Player killer) {
         UUID uuid = player.getUniqueId();
         TeamData team = playerTeams.get(uuid);
@@ -295,7 +322,6 @@ public class Game {
 
         if (killer != null) {
             kills.put(killer.getUniqueId(), kills.getOrDefault(killer.getUniqueId(), 0) + 1);
-
             plugin.getGadgetManager().activateGadget(killer, GadgetManager.GadgetType.KILL_MESSAGE);
         }
 
@@ -313,12 +339,12 @@ public class Game {
                 } else {
                     deathMsg += " §7wurde von " + killerTeam.getColor() + "§l" +
                             getPlayerName(killer) + " §7getötet!";
-                    deathMsg += " §c§lFINAL KILL!";
+                    deathMsg += " §b§lFINAL KILL!";
                     broadcast(deathMsg);
                 }
             } else {
                 deathMsg += " §7ist gestorben!";
-                deathMsg += " §c§lFINAL KILL!";
+                deathMsg += " §b§lFINAL DEATH!";
                 broadcast(deathMsg);
             }
 
@@ -341,7 +367,6 @@ public class Game {
                 if (player.isOnline() && state == GameState.INGAME) {
                     player.spigot().respawn();
                     player.teleport(team.getSpawn());
-                    giveStartItems(player, team);
                 }
             }, 40L);
         }
@@ -372,6 +397,18 @@ public class Game {
                 player.playSound(player.getLocation(), Sound.WITHER_DEATH, 1.0f, 1.0f);
             }
         }
+    }
+
+    public void trackPlacedBlock(Block block) {
+        placedBlocks.add(block.getLocation());
+    }
+
+    public boolean isPlacedBlock(Block block) {
+        return placedBlocks.contains(block.getLocation());
+    }
+
+    public void removeTrackedBlock(Block block) {
+        placedBlocks.remove(block.getLocation());
     }
 
     private void checkWinCondition() {
@@ -440,12 +477,39 @@ public class Game {
 
         updateAllStats(winnerTeam);
 
+        recoverMap();
+
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (Player player : getOnlinePlayers()) {
+                resetNameTag(player);
+
+                if (CoreAPI.isCoreAvailable()) {
+                    if (CoreAPI.getCore().getNickManager().isNicked(player.getUniqueId())) {
+                        CoreAPI.getCore().getNickManager().unnickPlayer(player);
+                    }
+                }
+
                 plugin.getLobbyManager().sendToLobby(player);
             }
             plugin.getGameManager().removeGame(this);
         }, 200L);
+    }
+
+    private void recoverMap() {
+        for (Location loc : placedBlocks) {
+            Block block = loc.getBlock();
+            if (block != null) {
+                block.setType(Material.AIR);
+            }
+        }
+        placedBlocks.clear();
+
+        for (TeamData team : mapData.getTeams()) {
+            Location bedLoc = team.getBed();
+            if (bedLoc != null) {
+                bedLoc.getBlock().setType(Material.BED_BLOCK);
+            }
+        }
     }
 
     private void giveRewards(Player player, boolean won) {
@@ -521,7 +585,7 @@ public class Game {
                 String status = hasBed(team) ? "§a✓" : "§c✗";
                 int alive = getAlivePlayersInTeam(team);
 
-                setScore(obj, team.getColor() + team.getShortName() + " " + status + " §7" + alive, line--);
+                setScore(obj, team.getColor() + team.getName() + " " + status + " §7" + alive, line--);
             }
 
             setScore(obj, "§3", line--);
@@ -529,7 +593,7 @@ public class Game {
         }
 
         setScore(obj, "§4", line--);
-        setScore(obj, "§ewww.homemc.de", line--);
+        setScore(obj, "§eplay.homemc.org", line--);
 
         player.setScoreboard(board);
     }
@@ -583,6 +647,9 @@ public class Game {
 
     private String getPlayerName(Player player) {
         if (CoreAPI.isCoreAvailable()) {
+            if (CoreAPI.getCore().getNickManager().isNicked(player.getUniqueId())) {
+                return "§7" + CoreAPI.getCore().getNickManager().getDisplayName(player.getUniqueId());
+            }
             return CoreAPI.getRankColor(player) + player.getName();
         }
         return player.getName();
@@ -653,7 +720,18 @@ public class Game {
         plugin.getGeneratorManager().stopGenerators(gameId);
 
         for (Player player : getOnlinePlayers()) {
+            resetNameTag(player);
+
+            if (CoreAPI.isCoreAvailable()) {
+                if (CoreAPI.getCore().getNickManager().isNicked(player.getUniqueId())) {
+                    CoreAPI.getCore().getNickManager().unnickPlayer(player);
+                }
+            }
+
             plugin.getLobbyManager().sendToLobby(player);
+            player.teleport(plugin.getBedWarsLobby().getLobbySpawn());
         }
+
+        recoverMap();
     }
 }

@@ -2,6 +2,7 @@ package me.leon.bedwars.commands;
 
 import me.leon.bedwars.BedWars;
 import me.leon.bedwars.managers.StatsManager;
+import me.leon.core.Core;
 import me.leon.core.utils.CoreAPI;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -50,9 +51,8 @@ public class StatsCommand implements CommandExecutor {
         if (CoreAPI.isCoreAvailable()) {
             try {
                 int coins = CoreAPI.getCore().getCoinManager().getCoins(player.getUniqueId());
-                player.sendMessage("§7Coins: §6" + coins);
+                player.sendMessage(Core.PREFIX + "§7Coins: §6§l" + coins);
             } catch (Exception e) {
-                // Coins nicht verfügbar
             }
         }
 

@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 
 public class BlockBreakListener implements Listener {
 
@@ -25,7 +26,9 @@ public class BlockBreakListener implements Listener {
         Game game = plugin.getGameManager().getPlayerGame(player);
 
         if (game == null) {
-            event.setCancelled(true);
+            if (!player.hasPermission("bedwars.admin")) {
+                event.setCancelled(true);
+            }
             return;
         }
 
@@ -53,5 +56,14 @@ public class BlockBreakListener implements Listener {
                 }
             }
         }
+
+        if (!game.isPlacedBlock(block)) {
+            event.setCancelled(true);
+            player.sendMessage(BedWars.PREFIX + "§cDu kannst nur von Spielern platzierte Blöcke abbauen!");
+            return;
+        }
+
+        game.removeTrackedBlock(block);
+        event.setExpToDrop(0);
     }
 }

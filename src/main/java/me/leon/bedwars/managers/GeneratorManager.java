@@ -4,7 +4,6 @@ import me.leon.bedwars.BedWars;
 import me.leon.bedwars.game.Game;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Item;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -27,23 +26,32 @@ public class GeneratorManager {
         String gameId = game.getGameId();
         List<Generator> generators = new ArrayList<>();
 
+        // Team-Generatoren (Bronze + Eisen)
         for (TeamData team : game.getMapData().getTeams()) {
             for (Location loc : team.getGenerators()) {
-                Generator gen = new Generator(loc, GeneratorType.IRON, 1);
-                gen.start(game);
-                generators.add(gen);
+                // Bronze Generator
+                Generator bronzeGen = new Generator(loc.clone().add(0, 0, 0), GeneratorType.BRONZE, 1);
+                bronzeGen.start();
+                generators.add(bronzeGen);
+
+                // Eisen Generator
+                Generator ironGen = new Generator(loc.clone().add(0, 0.5, 0), GeneratorType.IRON, 1);
+                ironGen.start();
+                generators.add(ironGen);
             }
         }
 
+        // Bronze-Generatoren auf der Map
         for (Location loc : game.getMapData().getBronzeGenerators()) {
-            Generator gen = new Generator(loc, GeneratorType.BRONZE, 2);
-            gen.start(game);
+            Generator gen = new Generator(loc, GeneratorType.BRONZE, 1);
+            gen.start();
             generators.add(gen);
         }
 
+        // Gold-Generatoren auf der Map
         for (Location loc : game.getMapData().getGoldGenerators()) {
-            Generator gen = new Generator(loc, GeneratorType.GOLD, 3);
-            gen.start(game);
+            Generator gen = new Generator(loc, GeneratorType.GOLD, 1);
+            gen.start();
             generators.add(gen);
         }
 
@@ -59,23 +67,11 @@ public class GeneratorManager {
         }
     }
 
-    public void upgradeGenerators(String gameId, GeneratorType type, int level) {
-        List<Generator> generators = gameGenerators.get(gameId);
-        if (generators != null) {
-            for (Generator gen : generators) {
-                if (gen.getType() == type) {
-                    gen.setLevel(level);
-                }
-            }
-        }
-    }
-
     public class Generator {
         private final Location location;
         private final GeneratorType type;
-        private int level;
+        private final int level;
         private BukkitRunnable task;
-        private ArmorStand hologram;
         private int nextSpawnIn;
 
         public Generator(Location location, GeneratorType type, int level) {
@@ -85,9 +81,7 @@ public class GeneratorManager {
             this.nextSpawnIn = type.getBaseDelay(level);
         }
 
-        public void start(Game game) {
-            createHologram();
-
+        public void start() {
             task = new BukkitRunnable() {
                 @Override
                 public void run() {
@@ -97,8 +91,6 @@ public class GeneratorManager {
                         spawnItem();
                         nextSpawnIn = type.getBaseDelay(level);
                     }
-
-                    updateHologram();
                 }
             };
             task.runTaskTimer(plugin, 0L, 20L);
@@ -108,34 +100,15 @@ public class GeneratorManager {
             if (task != null) {
                 task.cancel();
             }
-            if (hologram != null) {
-                hologram.remove();
-            }
-        }
-
-        private void createHologram() {
-            hologram = location.getWorld().spawn(location.clone().add(0, 1.5, 0), ArmorStand.class);
-            hologram.setVisible(false);
-            hologram.setGravity(false);
-            hologram.setCustomNameVisible(true);
-            hologram.setMarker(true);
-            updateHologram();
-        }
-
-        private void updateHologram() {
-            if (hologram != null) {
-                String name = type.getColor() + type.getDisplayName() + " " +
-                        getRomanNumeral(level) + " §8┃ §f" + nextSpawnIn + "s";
-                hologram.setCustomName(name);
-            }
         }
 
         private void spawnItem() {
             ItemStack itemStack = type.getItemStack();
             Item item = location.getWorld().dropItem(location, itemStack);
-            item.setVelocity(new Vector(0, 0.2, 0));
+            item.setVelocity(new Vector(0, 0.1, 0));
             item.setPickupDelay(0);
 
+            // Item nach 10 Sekunden entfernen
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (item != null && !item.isDead()) {
                     item.remove();
@@ -143,22 +116,12 @@ public class GeneratorManager {
             }, 200L);
         }
 
-        private String getRomanNumeral(int number) {
-            switch (number) {
-                case 1: return "I";
-                case 2: return "II";
-                case 3: return "III";
-                case 4: return "IV";
-                default: return String.valueOf(number);
-            }
-        }
-
         public GeneratorType getType() {
             return type;
         }
 
         public void setLevel(int level) {
-            this.level = Math.min(level, 4);
+            // Keine Upgrades in diesem System
         }
 
         public int getLevel() {
@@ -167,28 +130,22 @@ public class GeneratorManager {
     }
 
     public enum GeneratorType {
-        BRONZE("§6Bronze", "§6", Material.CLAY_BRICK, new int[]{2, 1, 1, 1}),
-        IRON("§7Eisen", "§7", Material.IRON_INGOT, new int[]{4, 3, 2, 1}),
-        GOLD("§eGold", "§e", Material.GOLD_INGOT, new int[]{10, 8, 6, 4});
+        BRONZE("§6Bronze", Material.CLAY_BRICK, new int[]{2, 2, 2, 2}),
+        IRON("§7Eisen", Material.IRON_INGOT, new int[]{4, 4, 4, 4}),
+        GOLD("§eGold", Material.GOLD_INGOT, new int[]{10, 10, 10, 10});
 
         private final String displayName;
-        private final String color;
         private final Material material;
         private final int[] delays;
 
-        GeneratorType(String displayName, String color, Material material, int[] delays) {
+        GeneratorType(String displayName, Material material, int[] delays) {
             this.displayName = displayName;
-            this.color = color;
             this.material = material;
             this.delays = delays;
         }
 
         public String getDisplayName() {
             return displayName;
-        }
-
-        public String getColor() {
-            return color;
         }
 
         public ItemStack getItemStack() {

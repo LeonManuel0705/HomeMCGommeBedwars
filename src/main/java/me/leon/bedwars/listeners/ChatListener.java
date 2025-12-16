@@ -33,7 +33,7 @@ public class ChatListener implements Listener {
             prefix = CoreAPI.getRankPrefix(player) + " ";
         }
 
-        String format = prefix + teamColor + player.getName() + " §8» §7" + event.getMessage();
+        String format = prefix + teamColor + player.getName() + " §8» §7" + plugin.getRankManager().getRankColor(player) + event.getMessage();
 
         game.broadcast(format);
     }

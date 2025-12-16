@@ -1,16 +1,16 @@
 mysql:
   host: localhost
   port: 3306
-  database: bedwars
+  database: MySQL
   username: root
-  password: ''
+  password: CHANGE_ME
 
 lobby:
-  world: world
+  world: BedwarsLobby
   x: 0
-  y: 64
+  y: 69
   z: 0
-  yaw: 0
+  yaw: 90
   pitch: 0
 
 server-name: bedwars

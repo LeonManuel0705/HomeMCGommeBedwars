@@ -21,6 +21,6 @@ public class PlayerJoinListener implements Listener {
         plugin.getAchievementManager().loadPlayer(event.getPlayer().getUniqueId());
         plugin.getGadgetManager().loadPlayer(event.getPlayer().getUniqueId());
 
-        plugin.getLobbyManager().sendToLobby(event.getPlayer());
+        plugin.getBedWarsLobby().addPlayer(event.getPlayer());
     }
 }

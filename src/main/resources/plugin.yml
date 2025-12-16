@@ -14,9 +14,28 @@ commands:
     description: Starte das Spiel (Admin)
   leave:
     description: Verlasse das Spiel
+    aliases:
+      - leavegame
+      - exit
+      - quit
+      - l
   setup:
     description: Map Setup (Admin)
   shout:
     description: Schreibe an alle
   joinme:
     description: Sende JoinMe Anfrage
+  lobby:
+    description: Teleportiere zum Lobby Spawn
+    aliases:
+      - spawn
+      - hub
+
+
+permissions:
+    bedwars.admin:
+        description: Erlaubt den Zugriff auf alle Admin Befehle
+        default: op
+    bedwars.forcestart:
+        description: Erlaubt die Nutzung des Start Befehls
+        default: true

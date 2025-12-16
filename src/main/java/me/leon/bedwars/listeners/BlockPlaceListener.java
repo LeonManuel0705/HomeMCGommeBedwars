@@ -21,12 +21,16 @@ public class BlockPlaceListener implements Listener {
         Game game = plugin.getGameManager().getPlayerGame(player);
 
         if (game == null) {
-            event.setCancelled(true);
+            if (!player.hasPermission("bedwars.admin")) {
+                event.setCancelled(true);
+            }
             return;
         }
 
         if (game.getState() != GameState.INGAME) {
             event.setCancelled(true);
+            return;
         }
+        game.trackPlacedBlock(event.getBlock());
     }
 }
