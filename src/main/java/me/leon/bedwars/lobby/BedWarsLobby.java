@@ -278,6 +278,11 @@ public class BedWarsLobby {
                     if (player != null && player.isOnline()) {
                         updateScoreboard(player);
                         updateTabList(player);
+                        
+                        if (player.getLocation().getY() < -12 && lobbySpawn != null) {
+                            player.teleport(lobbySpawn);
+                            player.sendMessage("§cDu wurdest zum Spawn teleportiert!");
+                        }
                     }
                 }
             }
