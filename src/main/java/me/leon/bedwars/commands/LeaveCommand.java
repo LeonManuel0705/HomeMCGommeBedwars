@@ -15,22 +15,15 @@ public class LeaveCommand implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("§cNur Spieler können diesen Befehl verwenden!");
+            sender.sendMessage("§cNur Spieler können diesen Befehl nutzen!");
             return true;
         }
 
         Player player = (Player) sender;
-
-        if (!plugin.getGameManager().isInGame(player)) {
-            player.sendMessage(BedWars.PREFIX + "§cDu bist in keinem Spiel!");
-            return true;
-        }
-
-        plugin.getGameManager().leaveGame(player);
+        plugin.getGameManager().leaveArena(player);
         plugin.getLobbyManager().sendToLobby(player);
-        player.sendMessage(BedWars.PREFIX + "§aDu hast das Spiel verlassen!");
 
         return true;
     }

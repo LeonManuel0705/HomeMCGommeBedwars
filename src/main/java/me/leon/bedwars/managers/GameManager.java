@@ -1,93 +1,91 @@
 package me.leon.bedwars.managers;
 
 import me.leon.bedwars.BedWars;
-import me.leon.bedwars.game.Game;
+import me.leon.bedwars.game.Arena;
 import me.leon.bedwars.game.GameState;
 import org.bukkit.entity.Player;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
+// ==================== GAME MANAGER ====================
 public class GameManager {
 
     private final BedWars plugin;
-    private final Map<String, Game> games;
-    private final Map<UUID, Game> playerGames;
+    private final Map<String, Arena> arenas;
+    private final Map<UUID, Arena> playerArenas;
 
     public GameManager(BedWars plugin) {
         this.plugin = plugin;
-        this.games = new ConcurrentHashMap<>();
-        this.playerGames = new ConcurrentHashMap<>();
+        this.arenas = new HashMap<>();
+        this.playerArenas = new HashMap<>();
     }
 
-    public Game createGame(MapData mapData) {
-        Game game = new Game(plugin, mapData);
-        games.put(game.getGameId(), game);
+    public void joinArena(Player player, String arenaName) {
+        Arena arena = arenas.get(arenaName);
 
-        plugin.getLogger().info("Spiel erstellt: " + game.getGameId() + " (Map: " + mapData.getName() + ")");
-
-        return game;
-    }
-
-    public void joinGame(Player player, Game game) {
-        if (playerGames.containsKey(player.getUniqueId())) {
-            player.sendMessage(BedWars.PREFIX + "§cDu bist bereits in einem Spiel!");
+        if (arena == null) {
+            player.sendMessage("§cArena nicht gefunden!");
             return;
         }
 
-        if (plugin.getBedWarsLobby().isInBuildMode(player.getUniqueId())) {
-            plugin.getBedWarsLobby().toggleBuildMode(player);
-            player.sendMessage(BedWars.PREFIX + "§7Bau-Modus wurde automatisch deaktiviert.");
+        if (arena.getGameState() == GameState.INGAME || arena.getGameState() == GameState.ENDING) {
+            player.sendMessage("§cDas Spiel läuft bereits!");
+            return;
         }
 
-        game.addPlayer(player);
-        playerGames.put(player.getUniqueId(), game);
-    }
-
-    public void leaveGame(Player player) {
-        Game game = playerGames.remove(player.getUniqueId());
-        if (game != null) {
-            game.removePlayer(player);
-            player.teleport(plugin.getBedWarsLobby().getLobbySpawn());
-            player.getInventory().clear();
-            plugin.getBedWarsLobby().giveItems(player);
+        if (arena.getPlayers().size() >= arena.getMaxPlayers()) {
+            player.sendMessage("§cDie Arena ist voll!");
+            return;
         }
+
+        if (playerArenas.containsKey(player.getUniqueId())) {
+            Arena oldArena = playerArenas.get(player.getUniqueId());
+            oldArena.removePlayer(player, true);
+        }
+
+        arena.addPlayer(player);
+        playerArenas.put(player.getUniqueId(), arena);
     }
 
-    public Game getAvailableGame(MapData mapData) {
-        for (Game game : games.values()) {
-            if (game.getMapData().equals(mapData) &&
-                    game.getState() == GameState.LOBBY &&
-                    game.getPlayers().size() < mapData.getMaxPlayers()) {
-                return game;
+    public void leaveArena(Player player) {
+        Arena arena = playerArenas.get(player.getUniqueId());
+
+        if (arena == null) {
+            player.sendMessage("§cDu bist in keiner Arena!");
+            return;
+        }
+
+        arena.removePlayer(player, true);
+        playerArenas.remove(player.getUniqueId());
+
+        plugin.getLobbyManager().sendToLobby(player);
+    }
+
+    public Arena getArenaByPlayer(UUID uuid) {
+        return playerArenas.get(uuid);
+    }
+
+    public Arena getArena(String name) {
+        return arenas.get(name);
+    }
+
+    public void addArena(Arena arena) {
+        arenas.put(arena.getName(), arena);
+    }
+
+    public Collection<Arena> getArenas() {
+        return arenas.values();
+    }
+
+    public void shutdown() {
+        for (Arena arena : arenas.values()) {
+            for (UUID uuid : new HashSet<>(arena.getPlayers())) {
+                Player player = plugin.getServer().getPlayer(uuid);
+                if (player != null) {
+                    arena.removePlayer(player, false);
+                }
             }
+            arena.reset();
         }
-
-        return createGame(mapData);
-    }
-
-    public Game getPlayerGame(Player player) {
-        return playerGames.get(player.getUniqueId());
-    }
-
-    public boolean isInGame(Player player) {
-        return playerGames.containsKey(player.getUniqueId());
-    }
-
-    public void removeGame(Game game) {
-        games.remove(game.getGameId());
-        plugin.getLogger().info("Spiel entfernt: " + game.getGameId());
-    }
-
-    public void shutdownAll() {
-        for (Game game : new ArrayList<>(games.values())) {
-            game.shutdown();
-        }
-        games.clear();
-        playerGames.clear();
-    }
-
-    public Collection<Game> getAllGames() {
-        return games.values();
     }
 }

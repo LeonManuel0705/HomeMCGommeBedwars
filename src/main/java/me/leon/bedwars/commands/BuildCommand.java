@@ -1,8 +1,8 @@
 package me.leon.bedwars.commands;
 
 import me.leon.bedwars.BedWars;
+import me.leon.bedwars.game.Arena;
 import me.leon.core.managers.RankManager;
-import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -17,16 +17,16 @@ public class BuildCommand implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("§cNur Spieler können diesen Befehl verwenden!");
+            sender.sendMessage("§cNur Spieler können diesen Befehl nutzen!");
             return true;
         }
 
         Player player = (Player) sender;
 
-        if (!player.hasPermission("bedwars.lobby.build")) {
-            RankManager.RankData builder = plugin.getRankManager().getRankData("homemc.builder");
+        if (!player.hasPermission("bedwars.build")) {
+            RankManager.RankData builder = plugin.getCore().getRankManager().getRankData("homemc.builder");
             String builderPrefix = builder.prefix;
             String builderColor = builder.color;
             String builderName = builder.displayName;
@@ -38,23 +38,13 @@ public class BuildCommand implements CommandExecutor {
             return true;
         }
 
-        if (!plugin.getBedWarsLobby().isInLobby(player.getUniqueId())) {
-            player.sendMessage(BedWars.PREFIX + "§cDu kannst den Bau-Modus nur in der Lobby verwenden!");
+        Arena arena = plugin.getGameManager().getArenaByPlayer(player.getUniqueId());
+        if (arena != null && arena.getGameState() == me.leon.bedwars.game.GameState.INGAME) {
+            player.sendMessage("§cDu kannst den Build-Modus nicht während einer laufenden Runde nutzen!");
             return true;
         }
 
-        boolean isBuildMode = plugin.getBedWarsLobby().toggleBuildMode(player);
-
-        if (isBuildMode) {
-            player.sendMessage(BedWars.PREFIX + "§aBau-Modus aktiviert!");
-            player.getInventory().clear();
-            player.setGameMode(GameMode.CREATIVE);
-        } else {
-            player.sendMessage(BedWars.PREFIX + "§cBau-Modus deaktiviert!");
-            player.getInventory().clear();
-            player.setGameMode(GameMode.SURVIVAL);
-            plugin.getBedWarsLobby().giveItems(player);
-        }
+        plugin.getBuildManager().toggleBuildMode(player);
 
         return true;
     }

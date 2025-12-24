@@ -1,8 +1,9 @@
 package me.leon.bedwars.game;
 
+// ==================== GAME STATES ====================
 public enum GameState {
-    LOBBY,
-    PROTECTION,
+    WAITING,
+    STARTING,
     INGAME,
     ENDING
 }

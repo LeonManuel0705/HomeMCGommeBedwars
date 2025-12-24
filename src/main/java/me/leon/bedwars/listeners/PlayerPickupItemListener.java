@@ -1,7 +1,7 @@
 package me.leon.bedwars.listeners;
 
 import me.leon.bedwars.BedWars;
-import me.leon.bedwars.game.Game;
+import me.leon.bedwars.game.Arena;
 import me.leon.bedwars.game.GameState;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -10,6 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 
 public class PlayerPickupItemListener implements Listener {
+
     private final BedWars plugin;
 
     public PlayerPickupItemListener(BedWars plugin) {
@@ -19,14 +20,16 @@ public class PlayerPickupItemListener implements Listener {
     @EventHandler
     public void onPickup(PlayerPickupItemEvent event) {
         Player player = event.getPlayer();
-        Game game = plugin.getGameManager().getPlayerGame(player);
+        Arena arena = plugin.getGameManager().getArenaByPlayer(player.getUniqueId());
 
-        if (game == null || game.getState() == GameState.LOBBY) {
-            event.setCancelled(true);
+        if (arena == null) {
+            if (!plugin.getBuildManager().isInBuildMode(player.getUniqueId())) {
+                event.setCancelled(true);
+            }
             return;
         }
 
-        if (game.isSpectator(player.getUniqueId())) {
+        if (arena.getGameState() != GameState.INGAME) {
             event.setCancelled(true);
             return;
         }
@@ -36,7 +39,7 @@ public class PlayerPickupItemListener implements Listener {
         if (type == Material.CLAY_BRICK ||
                 type == Material.IRON_INGOT ||
                 type == Material.GOLD_INGOT) {
-            player.playSound(player.getLocation(), org.bukkit.Sound.ITEM_PICKUP, 0.3f, 1.5f);
+            return;
         }
     }
 }

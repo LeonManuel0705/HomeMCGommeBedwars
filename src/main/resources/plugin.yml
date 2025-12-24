@@ -1,50 +1,60 @@
 name: BedWars
-version: 1.0
+version: 1.0.0
 main: me.leon.bedwars.BedWars
-author: Leon
 depend: [Core]
+author: 0CPSLeon
 
 commands:
   bw:
     description: BedWars Hauptbefehl
-    usage: /bw <join|leave|maps|achievements|gadgets>
-  stats:
-    description: Zeige deine Statistiken
-  start:
-    description: Starte das Spiel (Admin)
-  leave:
-    description: Verlasse das Spiel
+    aliases: [bedwars]
+  join:
+    description: Trete einer BedWars Arena bei
     aliases:
-      - leavegame
-      - exit
-      - quit
-      - l
+      - play
+      - enter
+      - p
+      - e
   setup:
-    description: Map Setup (Admin)
-  shout:
-    description: Schreibe an alle
-  joinme:
-    description: Sende JoinMe Anfrage
-  lobby:
-    description: Teleportiere zum Lobby Spawn
+    description: Arena Setup
+  stats:
+    description: Zeigt deine Stats
+  leave:
+    description: Verlasse die Arena
     aliases:
+      - quit
+      - exit
+      - lobby
+      - l
+      - q
       - spawn
-      - hub
-  build:
-    description: Aktiviere den Baumodus
-  hologram:
-    description: Verwalte Holograms
+      - sp
+  hub:
+    description: Gehe zurück zur Lobby
     aliases:
-      - holo
-
+      - mainlobby
+      - mainhub
+      - lobbyhub
+      - lobbymain
+      - disconnect
+      - dc
+  start:
+    description: Verringert den Countdown
+  forcestart:
+    description: Erzwinge den Spielstart
+  stop:
+    description: Stoppe das aktuelle Spiel
+  build:
+    description: Build-Modus in der Lobby
 
 permissions:
-    bedwars.admin:
-        description: Erlaubt den Zugriff auf alle Admin Befehle
-        default: op
-    bedwars.forcestart:
-        description: Erlaubt die Nutzung des Start Befehls
-        default: op
-    bedwars.lobby.build:
-        description: Erlaubt die Nutzung des Baumodus im Lobby Bereich
-        default: op
+  bedwars.forcestart:
+    default: op
+  bedwars.setup:
+    default: op
+  bedwars.stop:
+    default: op
+  bedwars.build:
+    default: op
+  bedwars.see-hidden:
+    default: op

@@ -1,16 +1,17 @@
 package me.leon.bedwars.listeners;
 
 import me.leon.bedwars.BedWars;
-import me.leon.bedwars.game.Game;
+import me.leon.bedwars.game.Arena;
 import me.leon.bedwars.game.GameState;
-import me.leon.bedwars.managers.TeamData;
+import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
 import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.*;
+
+import java.util.UUID;
 
 public class BlockBreakListener implements Listener {
 
@@ -21,49 +22,75 @@ public class BlockBreakListener implements Listener {
     }
 
     @EventHandler
-    public void onBreak(BlockBreakEvent event) {
+    public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
-        Game game = plugin.getGameManager().getPlayerGame(player);
+        Arena arena = plugin.getGameManager().getArenaByPlayer(player.getUniqueId());
+        UUID UUID = player.getUniqueId();
 
-        if (game == null) {
-            if (!player.hasPermission("bedwars.admin")) {
-                event.setCancelled(true);
-            }
+        if (plugin.getBuildManager().isInBuildMode(UUID)) {
             return;
         }
 
-        if (game.getState() != GameState.INGAME) {
+        if (arena == null) return;
+
+        if (arena.getGameState() != GameState.INGAME) {
             event.setCancelled(true);
             return;
         }
 
-        Block block = event.getBlock();
+        if (!arena.getPlacedBlocks().contains(event.getBlock().getLocation())) {
+            if (event.getBlock().getType() == Material.BED_BLOCK) {
+                handleBedBreak(event, arena, player);
+                return;
+            }
 
-        if (block.getType() == Material.BED_BLOCK) {
-            TeamData breakerTeam = game.getPlayerTeam(player.getUniqueId());
+            event.setCancelled(true);
+            player.sendMessage("§cDu kannst nur von Spielern platzierte Blöcke und gegnerische Betten abbauen!");
+            return;
+        }
 
-            for (TeamData team : game.getMapData().getTeams()) {
-                if (block.getLocation().distance(team.getBed()) < 2) {
-                    if (team.equals(breakerTeam)) {
-                        player.sendMessage(BedWars.PREFIX + "§cDu kannst dein eigenes Bett nicht zerstören!");
-                        event.setCancelled(true);
-                        return;
-                    }
+        arena.getPlacedBlocks().remove(event.getBlock().getLocation());
+    }
 
-                    game.destroyBed(team, player);
-                    event.setExpToDrop(0);
+    private void handleBedBreak(BlockBreakEvent event, Arena arena, Player player) {
+        event.setCancelled(true);
+
+        BedWarsTeam playerTeam = getPlayerTeam(arena, player);
+        if (playerTeam == null) return;
+
+        for (BedWarsTeam team : arena.getTeams().values()) {
+            if (team.getBedLocation() != null &&
+                    isNearBed(event.getBlock().getLocation(), team.getBedLocation())) {
+
+                if (team == playerTeam) {
+                    player.sendMessage("§cDu kannst dein eigenes Bett nicht zerstören!");
                     return;
                 }
+
+                team.destroyBed(player);
+
+                event.getBlock().setType(Material.AIR);
+                if (event.getBlock().getRelative(0, 1, 0).getType() == Material.BED_BLOCK) {
+                    event.getBlock().getRelative(0, 1, 0).setType(Material.AIR);
+                }
+
+                plugin.getStatsManager().addBedDestroy(player.getUniqueId());
+
+                return;
             }
         }
+    }
 
-        if (!game.isPlacedBlock(block)) {
-            event.setCancelled(true);
-            player.sendMessage(BedWars.PREFIX + "§cDu kannst nur von Spielern platzierte Blöcke abbauen!");
-            return;
+    private boolean isNearBed(org.bukkit.Location block, org.bukkit.Location bed) {
+        return block.distance(bed) <= 2;
+    }
+
+    private BedWarsTeam getPlayerTeam(Arena arena, Player player) {
+        for (BedWarsTeam team : arena.getTeams().values()) {
+            if (team.getPlayers().contains(player.getUniqueId())) {
+                return team;
+            }
         }
-
-        game.removeTrackedBlock(block);
-        event.setExpToDrop(0);
+        return null;
     }
 }

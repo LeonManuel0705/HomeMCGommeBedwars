@@ -1,10 +1,13 @@
 package me.leon.bedwars.listeners;
 
 import me.leon.bedwars.BedWars;
+import me.leon.bedwars.game.Arena;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+
+import java.util.UUID;
 
 public class PlayerQuitListener implements Listener {
 
@@ -16,16 +19,18 @@ public class PlayerQuitListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
         event.setQuitMessage(null);
 
-        Player player = event.getPlayer();
-
-        if (plugin.getGameManager().isInGame(player)) {
-            plugin.getGameManager().leaveGame(player);
+        Arena arena = plugin.getGameManager().getArenaByPlayer(player.getUniqueId());
+        UUID uuid = player.getUniqueId();
+        if (arena != null) {
+            arena.removePlayer(player, true);
         }
 
-        plugin.getStatsManager().unloadPlayer(player.getUniqueId());
-        plugin.getAchievementManager().unloadPlayer(player.getUniqueId());
-        plugin.getGadgetManager().unloadPlayer(player.getUniqueId());
+        if (plugin.getBuildManager().isInBuildMode(uuid)) {
+            plugin.getBuildManager().removeBuildMode(uuid);
+        }
+        plugin.getStatsManager().unloadStats(player.getUniqueId());
     }
 }

@@ -1,9 +1,7 @@
 package me.leon.bedwars.commands;
 
 import me.leon.bedwars.BedWars;
-import me.leon.bedwars.managers.StatsManager;
-import me.leon.core.Core;
-import me.leon.core.utils.CoreAPI;
+import me.leon.bedwars.managers.StatsManager.PlayerStats;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -18,47 +16,35 @@ public class StatsCommand implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("§cNur Spieler können diesen Befehl verwenden!");
+            sender.sendMessage("§cNur Spieler können diesen Befehl nutzen!");
             return true;
         }
 
         Player player = (Player) sender;
-        StatsManager.PlayerStats stats = plugin.getStatsManager().getStats(player.getUniqueId());
+        PlayerStats stats = plugin.getStatsManager().getStats(player.getUniqueId());
 
         if (stats == null) {
-            player.sendMessage(BedWars.PREFIX + "§cDeine Statistiken konnten nicht geladen werden!");
+            player.sendMessage("§cDeine Stats konnten nicht geladen werden!");
             return true;
         }
 
-        player.sendMessage("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        player.sendMessage("§c§lBedWars Statistiken");
-        player.sendMessage("");
-        player.sendMessage("§7Kills: §e" + stats.kills);
-        player.sendMessage("§7Deaths: §e" + stats.deaths);
-        player.sendMessage("§7K/D: §e" + String.format("%.2f", stats.getKD()));
-        player.sendMessage("");
-        player.sendMessage("§7Wins: §a" + stats.wins);
-        player.sendMessage("§7Losses: §c" + stats.losses);
-        player.sendMessage("§7Winrate: §e" + String.format("%.1f%%", stats.getWinrate()));
-        player.sendMessage("");
-        player.sendMessage("§7Betten zerstört: §e" + stats.bedsDestroyed);
-        player.sendMessage("§7Spiele gespielt: §e" + stats.gamesPlayed);
-        player.sendMessage("§7Current Winstreak: §e" + stats.currentWinstreak);
-        player.sendMessage("§7Highest Winstreak: §e" + stats.highestWinstreak);
-
-        if (CoreAPI.isCoreAvailable()) {
-            try {
-                int coins = CoreAPI.getCore().getCoinManager().getCoins(player.getUniqueId());
-                player.sendMessage("§7Coins: §6§l" + coins);
-            } catch (Exception e) {
-            }
-        }
-
-        player.sendMessage("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        player.sendMessage("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        player.sendMessage("§6§lDeine BedWars Stats:");
+        player.sendMessage("§f");
+        player.sendMessage("§eKills: §7" + stats.kills);
+        player.sendMessage("§eDeaths: §7" + stats.deaths);
+        player.sendMessage("§eK/D: §7" + String.format("%.2f", stats.getKD()));
+        player.sendMessage("§f");
+        player.sendMessage("§aWins: §7" + stats.wins);
+        player.sendMessage("§cLosses: §7" + stats.losses);
+        player.sendMessage("§eWinrate: §7" + String.format("%.1f", stats.getWinRate()) + "%");
+        player.sendMessage("§f");
+        player.sendMessage("§dBetten zerstört: §7" + stats.bedsDestroyed);
+        player.sendMessage("§eSpiele gespielt: §7" + stats.gamesPlayed);
+        player.sendMessage("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
         return true;
-
     }
 }

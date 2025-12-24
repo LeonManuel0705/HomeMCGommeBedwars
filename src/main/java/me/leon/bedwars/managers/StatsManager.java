@@ -1,246 +1,171 @@
 package me.leon.bedwars.managers;
 
 import me.leon.bedwars.BedWars;
-import me.leon.core.utils.CoreAPI;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class StatsManager {
 
     private final BedWars plugin;
-    private final Map<UUID, PlayerStats> statsCache;
+    private final ConcurrentHashMap<UUID, PlayerStats> statsCache;
 
     public StatsManager(BedWars plugin) {
         this.plugin = plugin;
-        this.statsCache = new HashMap<>();
+        this.statsCache = new ConcurrentHashMap<>();
     }
 
-    public void loadPlayer(Player player) {
-        UUID uuid = player.getUniqueId();
-
+    public void loadStats(UUID uuid) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                PreparedStatement ps = plugin.getMySQL().getConnection().prepareStatement(
-                        "SELECT * FROM bw_stats WHERE uuid = ?"
+                PreparedStatement ps = plugin.getCore().getMySQL().getConnection().prepareStatement(
+                        "SELECT * FROM bedwars_stats WHERE uuid = ?"
                 );
                 ps.setString(1, uuid.toString());
                 ResultSet rs = ps.executeQuery();
 
-                PlayerStats stats;
                 if (rs.next()) {
-                    stats = new PlayerStats(
-                            uuid,
-                            rs.getString("name"),
+                    PlayerStats stats = new PlayerStats(
                             rs.getInt("kills"),
                             rs.getInt("deaths"),
                             rs.getInt("wins"),
                             rs.getInt("losses"),
                             rs.getInt("beds_destroyed"),
-                            rs.getInt("games_played"),
-                            rs.getInt("coins"),
-                            rs.getInt("current_winstreak"),
-                            rs.getInt("highest_winstreak")
+                            rs.getInt("games_played")
                     );
+                    statsCache.put(uuid, stats);
                 } else {
-                    stats = new PlayerStats(uuid, player.getName());
-                    createPlayer(stats);
+                    statsCache.put(uuid, new PlayerStats(0, 0, 0, 0, 0, 0));
+                    createStats(uuid);
                 }
 
-                statsCache.put(uuid, stats);
                 rs.close();
                 ps.close();
 
             } catch (Exception e) {
-                plugin.getLogger().severe("Fehler beim Laden der Stats von " + player.getName());
+                plugin.getLogger().severe("Fehler beim Laden der Stats für " + uuid);
                 e.printStackTrace();
             }
         });
     }
 
-    private void createPlayer(PlayerStats stats) {
-        try {
-            PreparedStatement ps = plugin.getMySQL().getConnection().prepareStatement(
-                    "INSERT INTO bw_stats (uuid, name) VALUES (?, ?)"
-            );
-            ps.setString(1, stats.uuid.toString());
-            ps.setString(2, stats.name);
-            ps.executeUpdate();
-            ps.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void updateStats(UUID uuid, String name, int kills, int deaths,
-                            int wins, int losses, int bedsDestroyed) {
-
-        PlayerStats stats = statsCache.get(uuid);
-        if (stats == null) {
-            stats = new PlayerStats(uuid, name);
-            statsCache.put(uuid, stats);
-        }
-
-        stats.kills += kills;
-        stats.deaths += deaths;
-        stats.wins += wins;
-        stats.losses += losses;
-        stats.bedsDestroyed += bedsDestroyed;
-        stats.gamesPlayed++;
-
-        if (wins > 0) {
-            stats.currentWinstreak++;
-            if (stats.currentWinstreak > stats.highestWinstreak) {
-                stats.highestWinstreak = stats.currentWinstreak;
-            }
-        } else if (losses > 0) {
-            stats.currentWinstreak = 0;
-        }
-
-        saveStats(stats);
-    }
-
-    private void saveStats(PlayerStats stats) {
+    private void createStats(UUID uuid) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                PreparedStatement ps = plugin.getMySQL().getConnection().prepareStatement(
-                        "UPDATE bw_stats SET name = ?, kills = ?, deaths = ?, wins = ?, " +
-                                "losses = ?, beds_destroyed = ?, games_played = ?, coins = ?, " +
-                                "current_winstreak = ?, highest_winstreak = ? WHERE uuid = ?"
+                PreparedStatement ps = plugin.getCore().getMySQL().getConnection().prepareStatement(
+                        "INSERT INTO bedwars_stats (uuid, kills, deaths, wins, losses, beds_destroyed, games_played) " +
+                                "VALUES (?, 0, 0, 0, 0, 0, 0)"
                 );
-                ps.setString(1, stats.name);
-                ps.setInt(2, stats.kills);
-                ps.setInt(3, stats.deaths);
-                ps.setInt(4, stats.wins);
-                ps.setInt(5, stats.losses);
-                ps.setInt(6, stats.bedsDestroyed);
-                ps.setInt(7, stats.gamesPlayed);
-                ps.setInt(8, stats.coins);
-                ps.setInt(9, stats.currentWinstreak);
-                ps.setInt(10, stats.highestWinstreak);
-                ps.setString(11, stats.uuid.toString());
+                ps.setString(1, uuid.toString());
                 ps.executeUpdate();
                 ps.close();
+
             } catch (Exception e) {
+                plugin.getLogger().severe("Fehler beim Erstellen der Stats für " + uuid);
                 e.printStackTrace();
             }
         });
     }
 
-    public boolean resetStats(UUID uuid) {
-        try {
-            PreparedStatement ps = plugin.getMySQL().getConnection().prepareStatement(
-                    "UPDATE bw_stats SET kills = 0, deaths = 0, wins = 0, losses = 0, " +
-                            "beds_destroyed = 0, games_played = 0, current_winstreak = 0, " +
-                            "highest_winstreak = 0 WHERE uuid = ?"
-            );
-            ps.setString(1, uuid.toString());
-            ps.executeUpdate();
-            ps.close();
+    public void updateStats(UUID uuid, boolean won) {
+        PlayerStats stats = statsCache.get(uuid);
+        if (stats == null) return;
 
-            PlayerStats stats = statsCache.get(uuid);
-            if (stats != null) {
-                stats.kills = 0;
-                stats.deaths = 0;
-                stats.wins = 0;
-                stats.losses = 0;
-                stats.bedsDestroyed = 0;
-                stats.gamesPlayed = 0;
-                stats.currentWinstreak = 0;
-                stats.highestWinstreak = 0;
-            }
+        if (won) {
+            stats.wins++;
+        } else {
+            stats.losses++;
+        }
+        stats.gamesPlayed++;
 
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+        saveStats(uuid);
+    }
+
+    public void addKill(UUID uuid) {
+        PlayerStats stats = statsCache.get(uuid);
+        if (stats != null) {
+            stats.kills++;
+            saveStats(uuid);
         }
     }
 
-    public void addCoins(UUID uuid, int amount) {
-        if (CoreAPI.isCoreAvailable()) {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                try {
-                    me.leon.core.Core core = CoreAPI.getCore();
-                    if (core != null && core.getCoinManager() != null) {
-                        core.getCoinManager().addCoins(uuid, amount);
-                    }
-                } catch (Exception e) {
-                    plugin.getLogger().warning("Coins konnten nicht hinzugefügt werden: " + e.getMessage());
-                }
-            });
-        }
-
+    public void addDeath(UUID uuid) {
         PlayerStats stats = statsCache.get(uuid);
         if (stats != null) {
-            stats.coins += amount;
+            stats.deaths++;
+            saveStats(uuid);
         }
+    }
+
+    public void addBedDestroy(UUID uuid) {
+        PlayerStats stats = statsCache.get(uuid);
+        if (stats != null) {
+            stats.bedsDestroyed++;
+            saveStats(uuid);
+        }
+    }
+
+    private void saveStats(UUID uuid) {
+        PlayerStats stats = statsCache.get(uuid);
+        if (stats == null) return;
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                PreparedStatement ps = plugin.getCore().getMySQL().getConnection().prepareStatement(
+                        "UPDATE bedwars_stats SET kills = ?, deaths = ?, wins = ?, losses = ?, " +
+                                "beds_destroyed = ?, games_played = ? WHERE uuid = ?"
+                );
+                ps.setInt(1, stats.kills);
+                ps.setInt(2, stats.deaths);
+                ps.setInt(3, stats.wins);
+                ps.setInt(4, stats.losses);
+                ps.setInt(5, stats.bedsDestroyed);
+                ps.setInt(6, stats.gamesPlayed);
+                ps.setString(7, uuid.toString());
+                ps.executeUpdate();
+                ps.close();
+
+            } catch (Exception e) {
+                plugin.getLogger().severe("Fehler beim Speichern der Stats für " + uuid);
+                e.printStackTrace();
+            }
+        });
     }
 
     public PlayerStats getStats(UUID uuid) {
         return statsCache.get(uuid);
     }
 
-    public void unloadPlayer(UUID uuid) {
+    public void unloadStats(UUID uuid) {
         statsCache.remove(uuid);
     }
 
     public static class PlayerStats {
-        public UUID uuid;
-        public String name;
         public int kills;
         public int deaths;
         public int wins;
         public int losses;
         public int bedsDestroyed;
         public int gamesPlayed;
-        public int coins;
-        public int currentWinstreak;
-        public int highestWinstreak;
 
-        public PlayerStats(UUID uuid, String name) {
-            this.uuid = uuid;
-            this.name = name;
-            this.kills = 0;
-            this.deaths = 0;
-            this.wins = 0;
-            this.losses = 0;
-            this.bedsDestroyed = 0;
-            this.gamesPlayed = 0;
-            this.coins = 0;
-            this.currentWinstreak = 0;
-            this.highestWinstreak = 0;
-        }
-
-        public PlayerStats(UUID uuid, String name, int kills, int deaths,
-                           int wins, int losses, int bedsDestroyed, int gamesPlayed,
-                           int coins, int currentWinstreak, int highestWinstreak) {
-            this.uuid = uuid;
-            this.name = name;
+        public PlayerStats(int kills, int deaths, int wins, int losses, int bedsDestroyed, int gamesPlayed) {
             this.kills = kills;
             this.deaths = deaths;
             this.wins = wins;
             this.losses = losses;
             this.bedsDestroyed = bedsDestroyed;
             this.gamesPlayed = gamesPlayed;
-            this.coins = coins;
-            this.currentWinstreak = currentWinstreak;
-            this.highestWinstreak = highestWinstreak;
         }
 
         public double getKD() {
-            if (deaths == 0) return kills;
-            return (double) kills / deaths;
+            return deaths == 0 ? kills : (double) kills / deaths;
         }
 
-        public double getWinrate() {
-            if (gamesPlayed == 0) return 0;
-            return ((double) wins / gamesPlayed) * 100;
+        public double getWinRate() {
+            return gamesPlayed == 0 ? 0 : ((double) wins / gamesPlayed) * 100;
         }
     }
 }
