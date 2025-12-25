@@ -502,6 +502,22 @@ public class Arena {
         broadcastMessage("§7Aktuell: §a" + enableVotes + " §7dafür, §c" + disableVotes + " §7dagegen");
     }
 
+    public int getGoldVotesYes() {
+        int count = 0;
+        for (Boolean vote : goldVotes.values()) {
+            if (vote) count++;
+        }
+        return count;
+    }
+
+    public int getGoldVotesNo() {
+        int count = 0;
+        for (Boolean vote : goldVotes.values()) {
+            if (!vote) count++;
+        }
+        return count;
+    }
+
     private void spawnShopVillagers() {
         for (BedWarsTeam team : teams.values()) {
             if (team.getShopVillager() != null) {

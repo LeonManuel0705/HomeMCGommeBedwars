@@ -185,7 +185,7 @@ public class PrivateRoundGUI implements Listener {
                 handleMapSelectionClick(player, item);
                 break;
             case "§8Einstellungen":
-                handleSettingsClick(player, item, event.isLeftClick());
+                handleSettingsClick(player, item, event.isLeftClick(), event.getSlot());
                 break;
             case "§8Spieler einladen":
                 handleInviteClick(player, item);
@@ -241,7 +241,7 @@ public class PrivateRoundGUI implements Listener {
         }
     }
 
-    private void handleSettingsClick(Player player, ItemStack item, boolean leftClick) {
+    private void handleSettingsClick(Player player, ItemStack item, boolean leftClick, int slot) {
         PrivateRound round = plugin.getPrivateRoundManager().getPlayerRound(player.getUniqueId());
         if (round == null) return;
 
@@ -255,48 +255,51 @@ public class PrivateRoundGUI implements Listener {
 
         boolean changed = false;
 
-        if (item.getType() == Material.GOLD_INGOT && item.getItemMeta().getDisplayName().contains("Gold")) {
-            settings.setGoldEnabled(!settings.isGoldEnabled());
-            changed = true;
-        } else if (item.getType() == Material.BARRIER && item.getItemMeta().getDisplayName().contains("Gold")) {
-            settings.setGoldEnabled(true);
-            changed = true;
-        } else if (item.getType() == Material.IRON_INGOT && item.getItemMeta().getDisplayName().contains("Eisen")) {
-            settings.setIronEnabled(!settings.isIronEnabled());
-            changed = true;
-        } else if (item.getType() == Material.BARRIER && item.getItemMeta().getDisplayName().contains("Eisen")) {
-            settings.setIronEnabled(true);
-            changed = true;
-        } else if (item.getType() == Material.GOLDEN_APPLE) {
-            double newHealth = settings.getMaxHealth() + (leftClick ? 2 : -2);
-            if (newHealth >= 2 && newHealth <= 100) {
-                settings.setMaxHealth(newHealth);
+        // Use slot position to differentiate items
+        switch (slot) {
+            case 10: // Gold enable/disable toggle
+                settings.setGoldEnabled(!settings.isGoldEnabled());
                 changed = true;
-            }
-        } else if (item.getType() == Material.LEATHER_CHESTPLATE) {
-            int newSize = settings.getPlayersPerTeam() + (leftClick ? 1 : -1);
-            if (newSize >= 1 && newSize <= 4) {
-                settings.setPlayersPerTeam(newSize);
+                break;
+            case 12: // Iron enable/disable toggle
+                settings.setIronEnabled(!settings.isIronEnabled());
                 changed = true;
-            }
-        } else if (item.getType() == Material.CLAY_BRICK) {
-            int newRate = settings.getBronzeSpawnRate() + (leftClick ? 1 : -1);
-            if (newRate >= 1 && newRate <= 60) {
-                settings.setBronzeSpawnRate(newRate);
-                changed = true;
-            }
-        } else if (item.getItemMeta().getDisplayName().contains("Eisen-Rate")) {
-            int newRate = settings.getIronSpawnRate() + (leftClick ? 1 : -1);
-            if (newRate >= 1 && newRate <= 120) {
-                settings.setIronSpawnRate(newRate);
-                changed = true;
-            }
-        } else if (item.getItemMeta().getDisplayName().contains("Gold-Rate")) {
-            int newRate = settings.getGoldSpawnRate() + (leftClick ? 1 : -1);
-            if (newRate >= 1 && newRate <= 300) {
-                settings.setGoldSpawnRate(newRate);
-                changed = true;
-            }
+                break;
+            case 14: // Max health
+                double newHealth = settings.getMaxHealth() + (leftClick ? 2 : -2);
+                if (newHealth >= 2 && newHealth <= 100) {
+                    settings.setMaxHealth(newHealth);
+                    changed = true;
+                }
+                break;
+            case 16: // Team size
+                int newSize = settings.getPlayersPerTeam() + (leftClick ? 1 : -1);
+                if (newSize >= 1 && newSize <= 4) {
+                    settings.setPlayersPerTeam(newSize);
+                    changed = true;
+                }
+                break;
+            case 28: // Bronze spawn rate
+                int bronzeRate = settings.getBronzeSpawnRate() + (leftClick ? 1 : -1);
+                if (bronzeRate >= 1 && bronzeRate <= 60) {
+                    settings.setBronzeSpawnRate(bronzeRate);
+                    changed = true;
+                }
+                break;
+            case 30: // Iron spawn rate
+                int ironRate = settings.getIronSpawnRate() + (leftClick ? 1 : -1);
+                if (ironRate >= 1 && ironRate <= 120) {
+                    settings.setIronSpawnRate(ironRate);
+                    changed = true;
+                }
+                break;
+            case 32: // Gold spawn rate
+                int goldRate = settings.getGoldSpawnRate() + (leftClick ? 1 : -1);
+                if (goldRate >= 1 && goldRate <= 300) {
+                    settings.setGoldSpawnRate(goldRate);
+                    changed = true;
+                }
+                break;
         }
 
         if (changed) {

@@ -55,6 +55,9 @@ commands:
   forcestartprivate:
     description: Force-Start einer privaten Runde
     aliases: [fsp]
+  bwjoinme:
+    description: Sende eine JoinMe Nachricht für BedWars
+    aliases: [bedwarsjoinme, joinmebw]
 
 permissions:
   bedwars.forcestart:
@@ -72,4 +75,6 @@ permissions:
   bedwars.admin:
     default: op
   bedwars.private:
+    default: false
+  bedwars.joinme:
     default: false

@@ -25,9 +25,15 @@ public class EntityDamageListener implements Listener {
     public void onDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player)) return;
         Player player = (Player) event.getEntity();
-        UUID UUID = player.getUniqueId();
+        UUID uuid = player.getUniqueId();
 
-        if (plugin.getBuildManager().isInBuildMode(UUID)) {
+        if (plugin.getBuildManager().isInBuildMode(uuid)) {
+            return;
+        }
+
+        // Check for god mode in private rounds
+        if (plugin.getPrivateCommand() != null && plugin.getPrivateCommand().isInGodMode(uuid)) {
+            event.setCancelled(true);
             return;
         }
 

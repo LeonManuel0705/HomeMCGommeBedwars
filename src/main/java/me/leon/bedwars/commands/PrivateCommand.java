@@ -5,17 +5,31 @@ import me.leon.bedwars.managers.PrivateRoundManager;
 import me.leon.bedwars.managers.PrivateRoundManager.PrivateRound;
 import me.leon.bedwars.managers.PrivateRoundManager.PrivateSettings;
 import me.leon.core.managers.RankManager;
+import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 public class PrivateCommand implements CommandExecutor {
 
     private final BedWars plugin;
+    private final Set<UUID> godModePlayers = new HashSet<>();
 
     public PrivateCommand(BedWars plugin) {
         this.plugin = plugin;
+    }
+
+    public boolean isInGodMode(UUID playerId) {
+        return godModePlayers.contains(playerId);
+    }
+
+    public void removeGodMode(UUID playerId) {
+        godModePlayers.remove(playerId);
     }
 
     @Override
@@ -73,6 +87,19 @@ public class PrivateCommand implements CommandExecutor {
                 break;
             case "info":
                 handleInfo(player);
+                break;
+            case "fly":
+                handleFly(player);
+                break;
+            case "gm":
+            case "gamemode":
+                handleGamemode(player, args);
+                break;
+            case "god":
+                handleGod(player);
+                break;
+            case "kick":
+                handleKick(player, args);
                 break;
             default:
                 sendHelp(player);
@@ -312,6 +339,139 @@ public class PrivateCommand implements CommandExecutor {
         }
     }
 
+    private boolean isOwnerInPrivateRound(Player player) {
+        PrivateRound round = plugin.getPrivateRoundManager().getPlayerRound(player.getUniqueId());
+        if (round == null) {
+            return false;
+        }
+        if (!round.getCreator().equals(player.getUniqueId())) {
+            return false;
+        }
+        // Check if player is actually in the private world
+        if (!player.getWorld().equals(round.getPrivateWorld())) {
+            return false;
+        }
+        return true;
+    }
+
+    private void handleFly(Player player) {
+        if (!isOwnerInPrivateRound(player)) {
+            player.sendMessage(BedWars.PREFIX + "§cDieser Befehl ist nur in deiner privaten Runde verfügbar!");
+            return;
+        }
+
+        boolean flying = !player.getAllowFlight();
+        player.setAllowFlight(flying);
+        player.setFlying(flying);
+
+        if (flying) {
+            player.sendMessage(BedWars.PREFIX + "§aFlugmodus §2aktiviert§a!");
+        } else {
+            player.sendMessage(BedWars.PREFIX + "§aFlugmodus §cdeaktiviert§a!");
+        }
+    }
+
+    private void handleGamemode(Player player, String[] args) {
+        if (!isOwnerInPrivateRound(player)) {
+            player.sendMessage(BedWars.PREFIX + "§cDieser Befehl ist nur in deiner privaten Runde verfügbar!");
+            return;
+        }
+
+        if (args.length < 2) {
+            player.sendMessage(BedWars.PREFIX + "§cNutze: /private gm <0|1|2|3>");
+            player.sendMessage(BedWars.PREFIX + "§70 = Survival, 1 = Creative, 2 = Adventure, 3 = Spectator");
+            return;
+        }
+
+        GameMode gameMode;
+        switch (args[1].toLowerCase()) {
+            case "0":
+            case "s":
+            case "survival":
+                gameMode = GameMode.SURVIVAL;
+                break;
+            case "1":
+            case "c":
+            case "creative":
+                gameMode = GameMode.CREATIVE;
+                break;
+            case "2":
+            case "a":
+            case "adventure":
+                gameMode = GameMode.ADVENTURE;
+                break;
+            case "3":
+            case "sp":
+            case "spectator":
+                gameMode = GameMode.SPECTATOR;
+                break;
+            default:
+                player.sendMessage(BedWars.PREFIX + "§cUngültiger Spielmodus! Nutze 0, 1, 2 oder 3");
+                return;
+        }
+
+        player.setGameMode(gameMode);
+        player.sendMessage(BedWars.PREFIX + "§aSpielmodus auf §e" + gameMode.name() + " §agesetzt!");
+    }
+
+    private void handleGod(Player player) {
+        if (!isOwnerInPrivateRound(player)) {
+            player.sendMessage(BedWars.PREFIX + "§cDieser Befehl ist nur in deiner privaten Runde verfügbar!");
+            return;
+        }
+
+        boolean godMode = !godModePlayers.contains(player.getUniqueId());
+
+        if (godMode) {
+            godModePlayers.add(player.getUniqueId());
+            player.sendMessage(BedWars.PREFIX + "§aGod-Modus §2aktiviert§a!");
+        } else {
+            godModePlayers.remove(player.getUniqueId());
+            player.sendMessage(BedWars.PREFIX + "§aGod-Modus §cdeaktiviert§a!");
+        }
+    }
+
+    private void handleKick(Player player, String[] args) {
+        if (!isOwnerInPrivateRound(player)) {
+            player.sendMessage(BedWars.PREFIX + "§cDieser Befehl ist nur in deiner privaten Runde verfügbar!");
+            return;
+        }
+
+        if (args.length < 2) {
+            player.sendMessage(BedWars.PREFIX + "§cNutze: /private kick <spieler>");
+            return;
+        }
+
+        Player target = plugin.getServer().getPlayer(args[1]);
+        if (target == null) {
+            player.sendMessage(BedWars.PREFIX + "§cSpieler nicht gefunden!");
+            return;
+        }
+
+        if (target.getUniqueId().equals(player.getUniqueId())) {
+            player.sendMessage(BedWars.PREFIX + "§cDu kannst dich nicht selbst kicken!");
+            return;
+        }
+
+        PrivateRound round = plugin.getPrivateRoundManager().getPlayerRound(player.getUniqueId());
+        if (!round.getPlayers().contains(target.getUniqueId())) {
+            player.sendMessage(BedWars.PREFIX + "§cDieser Spieler ist nicht in deiner Runde!");
+            return;
+        }
+
+        // Remove from private round and send to BedWars lobby
+        round.removePlayer(target.getUniqueId());
+        plugin.getPrivateRoundManager().removePlayerFromRound(target.getUniqueId());
+        plugin.getLobbyManager().sendToLobby(target);
+
+        // Remove god mode if they had it
+        godModePlayers.remove(target.getUniqueId());
+
+        target.sendMessage(BedWars.PREFIX + "§cDu wurdest aus der privaten Runde gekickt!");
+        player.sendMessage(BedWars.PREFIX + "§a" + target.getName() + " §7wurde aus der Runde gekickt!");
+        round.broadcastMessage("§c" + target.getName() + " §7wurde aus der Runde gekickt.");
+    }
+
     private void sendHelp(Player player) {
         player.sendMessage("§8§m=======§r §6§lPrivate Runde §8§m=======§r");
         player.sendMessage("§e/private create <map> §8- §7Private Runde erstellen");
@@ -322,6 +482,12 @@ public class PrivateCommand implements CommandExecutor {
         player.sendMessage("§e/private settings §8- §7Einstellungen anzeigen/ändern");
         player.sendMessage("§e/private info §8- §7Runden-Info anzeigen");
         player.sendMessage("§e/private delete §8- §7Runde löschen");
+        player.sendMessage("§8§m================================");
+        player.sendMessage("§d§lErsteller-Befehle §7(nur in eigener Runde):");
+        player.sendMessage("§d/private fly §8- §7Flugmodus umschalten");
+        player.sendMessage("§d/private gm <0-3> §8- §7Spielmodus ändern");
+        player.sendMessage("§d/private god §8- §7Unverwundbarkeit umschalten");
+        player.sendMessage("§d/private kick <spieler> §8- §7Spieler aus Runde kicken");
         player.sendMessage("§8§m================================");
     }
 }

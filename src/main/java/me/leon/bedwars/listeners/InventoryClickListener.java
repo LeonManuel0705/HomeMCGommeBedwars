@@ -2,6 +2,7 @@ package me.leon.bedwars.listeners;
 
 import me.leon.bedwars.BedWars;
 import me.leon.bedwars.game.Arena;
+import me.leon.bedwars.lobby.LobbyManager;
 import me.leon.bedwars.managers.TeamManager;
 import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
 import me.leon.bedwars.managers.TeamManager.TeamColor;
@@ -25,11 +26,38 @@ public class InventoryClickListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
 
         Player player = (Player) event.getWhoClicked();
+        String title = event.getInventory().getTitle();
+
+        // Handle game mode selector in lobby (not in arena)
+        if (title.equals("§8» §6§lSpielmodus wählen")) {
+            event.setCancelled(true);
+            if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.STAINED_GLASS_PANE) {
+                return;
+            }
+
+            if (event.getCurrentItem().getType() == Material.BED) {
+                int slot = event.getSlot();
+                LobbyManager.GameMode mode = null;
+
+                if (slot == 11) {
+                    mode = LobbyManager.GameMode.SOLO;
+                } else if (slot == 13) {
+                    mode = LobbyManager.GameMode.DUO;
+                } else if (slot == 15) {
+                    mode = LobbyManager.GameMode.TEAM;
+                }
+
+                if (mode != null) {
+                    player.closeInventory();
+                    plugin.getNPCManager().joinBestArena(player, mode);
+                }
+            }
+            return;
+        }
+
         Arena arena = plugin.getGameManager().getArenaByPlayer(player.getUniqueId());
 
         if (arena == null) return;
-
-        String title = event.getInventory().getTitle();
 
         if (title.equals("§8Team wählen")) {
             event.setCancelled(true);

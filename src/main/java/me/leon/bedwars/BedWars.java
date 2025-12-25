@@ -10,6 +10,7 @@ import me.leon.bedwars.shop.ShopManager;
 import me.leon.bedwars.utils.ConfigManager;
 import me.leon.core.Core;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -33,6 +34,7 @@ public class BedWars extends JavaPlugin {
     private NPCManager npcManager;
     private PrivateRoundManager privateRoundManager;
     private PrivateRoundGUI privateRoundGUI;
+    private PrivateCommand privateCommand;
 
     public static final String PREFIX = "§cBedwars §8» ";
 
@@ -55,6 +57,9 @@ public class BedWars extends JavaPlugin {
         registerCommands();
 
         registerListeners();
+
+        // Register BungeeCord channel for server switching
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
         startTasks();
 
@@ -103,7 +108,9 @@ public class BedWars extends JavaPlugin {
         getCommand("forcestart").setExecutor(new ForceStartCommand(this));
         getCommand("forcestartprivate").setExecutor(new ForceStartPrivateCommand(this));
         getCommand("bwnpc").setExecutor(new NPCCommand(this));
-        getCommand("private").setExecutor(new PrivateCommand(this));
+        this.privateCommand = new PrivateCommand(this);
+        getCommand("private").setExecutor(privateCommand);
+        getCommand("bwjoinme").setExecutor(new JoinMeCommand(this));
     }
 
     private void registerListeners() {
@@ -217,5 +224,32 @@ public class BedWars extends JavaPlugin {
 
     public PrivateRoundGUI getPrivateRoundGUI() {
         return privateRoundGUI;
+    }
+
+    public PrivateCommand getPrivateCommand() {
+        return privateCommand;
+    }
+
+    /**
+     * Gets the display name for a player, considering nick status.
+     * If the player is nicked, returns the nick name.
+     * Otherwise returns the real name.
+     */
+    public String getDisplayName(Player player) {
+        if (core.getNickManager().isNicked(player.getUniqueId())) {
+            return core.getNickManager().getDisplayName(player.getUniqueId());
+        }
+        return player.getName();
+    }
+
+    /**
+     * Gets the display name for a player UUID, considering nick status.
+     */
+    public String getDisplayName(java.util.UUID uuid) {
+        if (core.getNickManager().isNicked(uuid)) {
+            return core.getNickManager().getDisplayName(uuid);
+        }
+        Player player = getServer().getPlayer(uuid);
+        return player != null ? player.getName() : "Unknown";
     }
 }

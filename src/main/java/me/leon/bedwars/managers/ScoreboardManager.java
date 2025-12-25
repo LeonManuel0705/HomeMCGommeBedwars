@@ -2,6 +2,7 @@ package me.leon.bedwars.managers;
 
 import me.leon.bedwars.BedWars;
 import me.leon.bedwars.game.Arena;
+import me.leon.bedwars.game.GameState;
 import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -63,28 +64,63 @@ public class ScoreboardManager {
         obj.setDisplayName("§f§lHOMEMC");
 
         int line = 15;
-        obj.getScore("§7" + getCurrentDate()).setScore(line--);
-        obj.getScore("§f").setScore(line--);
 
-        if (arena.isGoldEnabled()) {
-            obj.getScore("§fGold: §aJa").setScore(line--);
+        if (arena.getGameState() == GameState.WAITING || arena.getGameState() == GameState.STARTING) {
+            // Waiting lobby scoreboard
+            obj.getScore("§8" + getCurrentDate()).setScore(line--);
+            obj.getScore("§f").setScore(line--);
+
+            obj.getScore("§fMap: §a" + arena.getDisplayName()).setScore(line--);
+            obj.getScore("§f ").setScore(line--);
+
+            obj.getScore("§fSpieler: §a" + arena.getPlayers().size() + "§7/" + arena.getMaxPlayers()).setScore(line--);
+            obj.getScore("§f  ").setScore(line--);
+
+            if (arena.getGameState() == GameState.STARTING) {
+                obj.getScore("§fStart in: §e" + arena.getCountdown() + "s").setScore(line--);
+            } else {
+                obj.getScore("§fStatus: §eWarten...").setScore(line--);
+            }
+            obj.getScore("§f   ").setScore(line--);
+
+            // Gold vote status
+            int goldYes = arena.getGoldVotesYes();
+            int goldNo = arena.getGoldVotesNo();
+            if (arena.isGoldEnabled()) {
+                obj.getScore("§fGold: §aJa §7(" + goldYes + "/" + goldNo + ")").setScore(line--);
+            } else {
+                obj.getScore("§fGold: §cNein §7(" + goldYes + "/" + goldNo + ")").setScore(line--);
+            }
+            obj.getScore("§f    ").setScore(line--);
+
+            obj.getScore("§eplay.homemc.org").setScore(line--);
         } else {
-            obj.getScore("§fGold: §cNein").setScore(line--);
-        }
+            // In-game scoreboard
+            obj.getScore("§8" + getCurrentDate()).setScore(line--);
+            obj.getScore("§f").setScore(line--);
 
-        obj.getScore(" §f").setScore(line--);
+            obj.getScore("§fMap: §a" + arena.getDisplayName()).setScore(line--);
+            obj.getScore("§f ").setScore(line--);
 
-        obj.getScore("§fMap: §e" + arena.getDisplayName()).setScore(line--);
+            if (arena.isGoldEnabled()) {
+                obj.getScore("§fGold: §aJa").setScore(line--);
+            } else {
+                obj.getScore("§fGold: §cNein").setScore(line--);
+            }
+            obj.getScore("§f  ").setScore(line--);
 
-        obj.getScore("  §f").setScore(line--);
+            // Team status
+            for (BedWarsTeam team : arena.getTeams().values()) {
+                if (team.getPlayers().isEmpty() && !team.isBedAlive()) continue;
 
-        for (BedWarsTeam team : arena.getTeams().values()) {
-            if (team.getPlayers().isEmpty()) continue;
+                String bedStatus = team.isBedAlive() ? "§a✔" : (team.getPlayers().isEmpty() ? "§c✘" : "§e" + team.getPlayers().size());
+                String teamLine = team.getColor().getColorCode() + team.getColor().getDisplayName().charAt(0) +
+                        " §f" + team.getColor().getDisplayName() + ": " + bedStatus;
+                obj.getScore(teamLine).setScore(line--);
+            }
 
-            String status = team.isBedAlive() ? "§a✓" : "§c✗";
-            String teamLine = status + " " + team.getColor().getColorCode() +
-                    team.getColor().getDisplayName();
-            obj.getScore(teamLine).setScore(line--);
+            obj.getScore("§f   ").setScore(line--);
+            obj.getScore("§eplay.homemc.org").setScore(line--);
         }
 
         player.setScoreboard(board);

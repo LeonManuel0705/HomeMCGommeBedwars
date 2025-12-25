@@ -56,9 +56,9 @@ public class LobbyListener implements Listener {
     public void onInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         ItemStack item = event.getItem();
-        UUID UUID = player.getUniqueId();
+        UUID uuid = player.getUniqueId();
 
-        if (plugin.getBuildManager().isInBuildMode(UUID)) {
+        if (plugin.getBuildManager().isInBuildMode(uuid)) {
             return;
         }
 
@@ -68,15 +68,30 @@ public class LobbyListener implements Listener {
             return;
         }
 
-        if (item.getType() == Material.PAINTING) {
+        // Compass - Game mode selector GUI
+        if (item.getType() == Material.COMPASS) {
+            event.setCancelled(true);
+            openGameModeSelector(player);
+        }
+        // Paper - Stats
+        else if (item.getType() == Material.PAPER) {
             event.setCancelled(true);
             player.performCommand("stats");
         }
-        else if (item.getType() == Material.BLAZE_ROD) {
+        // Blaze Rod - Player visibility toggle
+        else if (item.getType() == Material.BLAZE_ROD || item.getType() == Material.BLAZE_POWDER) {
             event.setCancelled(true);
             togglePlayerVisibility(player);
         }
-        else if (item.getType() == Material.BED) {
+        // Nether Star - Private round GUI
+        else if (item.getType() == Material.NETHER_STAR) {
+            event.setCancelled(true);
+            if (player.hasPermission("bedwars.private")) {
+                plugin.getPrivateRoundGUI().openMainMenu(player);
+            }
+        }
+        // Slime Ball - Return to lobby (BungeeCord)
+        else if (item.getType() == Material.SLIME_BALL) {
             event.setCancelled(true);
             try {
                 com.google.common.io.ByteArrayDataOutput out = com.google.common.io.ByteStreams.newDataOutput();
@@ -88,6 +103,78 @@ public class LobbyListener implements Listener {
                 e.printStackTrace();
             }
         }
+    }
+
+    private void openGameModeSelector(Player player) {
+        org.bukkit.inventory.Inventory inv = org.bukkit.Bukkit.createInventory(null, 27, "§8» §6§lSpielmodus wählen");
+
+        // Solo - Yellow bed
+        ItemStack solo = new ItemStack(Material.BED, 1, (short) 4); // Yellow bed
+        org.bukkit.inventory.meta.ItemMeta soloMeta = solo.getItemMeta();
+        soloMeta.setDisplayName("§e§lSolo §7(1x8)");
+        int soloPlayers = getPlayingCount(LobbyManager.GameMode.SOLO);
+        soloMeta.setLore(java.util.Arrays.asList(
+                "§7Spiele alleine gegen 7 andere!",
+                "§f",
+                "§8▸ §7Spieler: §e" + soloPlayers,
+                "§f",
+                "§aKlicke zum Spielen!"
+        ));
+        solo.setItemMeta(soloMeta);
+        inv.setItem(11, solo);
+
+        // Duo - Lime bed
+        ItemStack duo = new ItemStack(Material.BED, 1, (short) 5); // Lime bed
+        org.bukkit.inventory.meta.ItemMeta duoMeta = duo.getItemMeta();
+        duoMeta.setDisplayName("§a§lDuo §7(2x4)");
+        int duoPlayers = getPlayingCount(LobbyManager.GameMode.DUO);
+        duoMeta.setLore(java.util.Arrays.asList(
+                "§7Spiele mit einem Freund!",
+                "§f",
+                "§8▸ §7Spieler: §a" + duoPlayers,
+                "§f",
+                "§aKlicke zum Spielen!"
+        ));
+        duo.setItemMeta(duoMeta);
+        inv.setItem(13, duo);
+
+        // Team 4x2 - Cyan bed
+        ItemStack team = new ItemStack(Material.BED, 1, (short) 9); // Cyan bed
+        org.bukkit.inventory.meta.ItemMeta teamMeta = team.getItemMeta();
+        teamMeta.setDisplayName("§b§lTeam §7(4x2)");
+        int teamPlayers = getPlayingCount(LobbyManager.GameMode.TEAM);
+        teamMeta.setLore(java.util.Arrays.asList(
+                "§7Spiele im 4er Team!",
+                "§f",
+                "§8▸ §7Spieler: §b" + teamPlayers,
+                "§f",
+                "§aKlicke zum Spielen!"
+        ));
+        team.setItemMeta(teamMeta);
+        inv.setItem(15, team);
+
+        // Glass panes for decoration
+        ItemStack glass = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 7); // Gray glass
+        org.bukkit.inventory.meta.ItemMeta glassMeta = glass.getItemMeta();
+        glassMeta.setDisplayName(" ");
+        glass.setItemMeta(glassMeta);
+        for (int i = 0; i < 27; i++) {
+            if (inv.getItem(i) == null) {
+                inv.setItem(i, glass);
+            }
+        }
+
+        player.openInventory(inv);
+    }
+
+    private int getPlayingCount(LobbyManager.GameMode mode) {
+        int count = 0;
+        for (me.leon.bedwars.game.Arena arena : plugin.getArenaManager().getArenas()) {
+            if (arena.getGameMode() == mode) {
+                count += arena.getPlayers().size();
+            }
+        }
+        return count;
     }
 
     @EventHandler
@@ -199,14 +286,18 @@ public class LobbyListener implements Listener {
             }
             hiddenPlayers.put(player.getUniqueId(), false);
 
-            ItemStack item = player.getInventory().getItem(7);
+            ItemStack item = player.getInventory().getItem(6);
             item.setType(Material.BLAZE_ROD);
             org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
-            meta.setDisplayName("§aSpieler angezeigt");
-            meta.setLore(java.util.Arrays.asList("§7Klicke um Spieler zu verstecken"));
+            meta.setDisplayName("§aSpieler sichtbar");
+            meta.setLore(java.util.Arrays.asList(
+                    "§7Spieler werden angezeigt",
+                    "§f",
+                    "§eRechtsklick §7zum Verstecken"
+            ));
             item.setItemMeta(meta);
 
-            player.sendMessage("§aSpieler werden wieder angezeigt!");
+            player.sendMessage(BedWars.PREFIX + "§aSpieler werden wieder angezeigt!");
         } else {
             for (Player online : plugin.getServer().getOnlinePlayers()) {
                 if (!online.hasPermission("bedwars.see-hidden")) {
@@ -215,14 +306,18 @@ public class LobbyListener implements Listener {
             }
             hiddenPlayers.put(player.getUniqueId(), true);
 
-            ItemStack item = player.getInventory().getItem(7);
+            ItemStack item = player.getInventory().getItem(6);
             item.setType(Material.BLAZE_POWDER);
             org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
             meta.setDisplayName("§cSpieler versteckt");
-            meta.setLore(java.util.Arrays.asList("§7Klicke um Spieler anzuzeigen"));
+            meta.setLore(java.util.Arrays.asList(
+                    "§7Spieler werden versteckt",
+                    "§f",
+                    "§eRechtsklick §7zum Anzeigen"
+            ));
             item.setItemMeta(meta);
 
-            player.sendMessage("§cSpieler werden versteckt!");
+            player.sendMessage(BedWars.PREFIX + "§cSpieler werden versteckt!");
         }
     }
 }

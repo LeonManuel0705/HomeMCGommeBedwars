@@ -68,27 +68,82 @@ public class LobbyManager {
     }
 
     public void giveLobbyItems(Player player) {
-        ItemStack stats = new ItemStack(Material.PAINTING);
-        ItemMeta statsMeta = stats.getItemMeta();
-        statsMeta.setDisplayName("§6§lDeine Stats §7(Rechtsklick)");
-        List<String> lore = new ArrayList<>();
-        lore.add("§7Klicke um deine Statistiken");
-        lore.add("§7anzuzeigen!");
-        statsMeta.setLore(lore);
-        stats.setItemMeta(statsMeta);
-        player.getInventory().setItem(0, stats);
+        // Slot 0: Compass - Opens game mode selector (future: opens GUI for game mode selection)
+        ItemStack compass = new ItemStack(Material.COMPASS);
+        ItemMeta compassMeta = compass.getItemMeta();
+        compassMeta.setDisplayName("§a§lSpielmodus");
+        compassMeta.setLore(Arrays.asList(
+                "§7Wähle einen Spielmodus:",
+                "§f",
+                "§8▸ §eSolo §7(1x8)",
+                "§8▸ §aDuo §7(2x4)",
+                "§8▸ §bTeam §7(4x2)",
+                "§f",
+                "§eRechtsklick §7um Modus zu wählen!"
+        ));
+        compass.setItemMeta(compassMeta);
+        player.getInventory().setItem(0, compass);
 
+        // Slot 4: Stats - Shows player statistics
+        ItemStack stats = new ItemStack(Material.PAPER);
+        ItemMeta statsMeta = stats.getItemMeta();
+        statsMeta.setDisplayName("§6§lStatistiken");
+        List<String> statsLore = new ArrayList<>();
+        statsLore.add("§7Zeige deine BedWars Statistiken");
+        statsLore.add("§f");
+        me.leon.bedwars.managers.StatsManager.PlayerStats playerStats =
+                plugin.getStatsManager().getStats(player.getUniqueId());
+        if (playerStats != null) {
+            statsLore.add("§8▸ §7Kills: §f" + playerStats.kills);
+            statsLore.add("§8▸ §7Tode: §f" + playerStats.deaths);
+            statsLore.add("§8▸ §7Siege: §f" + playerStats.wins);
+            statsLore.add("§8▸ §7K/D: §f" + String.format("%.2f", playerStats.getKD()));
+        }
+        statsLore.add("§f");
+        statsLore.add("§eRechtsklick §7für Details!");
+        statsMeta.setLore(statsLore);
+        stats.setItemMeta(statsMeta);
+        player.getInventory().setItem(4, stats);
+
+        // Slot 6: Player visibility toggle
         ItemStack hidePlayer = new ItemStack(Material.BLAZE_ROD);
         ItemMeta hideMeta = hidePlayer.getItemMeta();
-        hideMeta.setDisplayName("§aSpieler angezeigt");
-        hideMeta.setLore(Arrays.asList("§7Klicke um Spieler zu verstecken"));
+        hideMeta.setDisplayName("§aSpieler sichtbar");
+        hideMeta.setLore(Arrays.asList(
+                "§7Spieler werden angezeigt",
+                "§f",
+                "§eRechtsklick §7zum Verstecken"
+        ));
         hidePlayer.setItemMeta(hideMeta);
-        player.getInventory().setItem(7, hidePlayer);
+        player.getInventory().setItem(6, hidePlayer);
 
-        ItemStack leave = new ItemStack(Material.BED);
+        // Slot 7: Private Rounds (if player has permission)
+        if (player.hasPermission("bedwars.private")) {
+            ItemStack privateItem = new ItemStack(Material.NETHER_STAR);
+            ItemMeta privateMeta = privateItem.getItemMeta();
+            privateMeta.setDisplayName("§d§lPrivate Runde");
+            privateMeta.setLore(Arrays.asList(
+                    "§7Erstelle deine eigene Runde!",
+                    "§f",
+                    "§8▸ §7Lade Freunde ein",
+                    "§8▸ §7Wähle Einstellungen",
+                    "§8▸ §7Spiele auf deiner Map",
+                    "§f",
+                    "§eRechtsklick §7zum Öffnen"
+            ));
+            privateItem.setItemMeta(privateMeta);
+            player.getInventory().setItem(7, privateItem);
+        }
+
+        // Slot 8: Return to main lobby (BungeeCord)
+        ItemStack leave = new ItemStack(Material.SLIME_BALL);
         ItemMeta leaveMeta = leave.getItemMeta();
-        leaveMeta.setDisplayName("§cZur Hauptlobby");
-        leaveMeta.setLore(Arrays.asList("§7Zurück zur Hauptlobby"));
+        leaveMeta.setDisplayName("§c§lZur Lobby");
+        leaveMeta.setLore(Arrays.asList(
+                "§7Zurück zur Hauptlobby",
+                "§f",
+                "§eRechtsklick §7zum Verlassen"
+        ));
         leave.setItemMeta(leaveMeta);
         player.getInventory().setItem(8, leave);
     }
@@ -97,34 +152,43 @@ public class LobbyManager {
         Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
         Objective obj = board.registerNewObjective("lobby", "dummy");
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-        obj.setDisplayName("§c§lBedWars");
+        obj.setDisplayName("§f§lHOMEMC");
 
         int line = 15;
-        obj.getScore("§8§m━━━━━━━━━━━━━━━").setScore(line--);
-        obj.getScore("§7Willkommen, " + plugin.getCore().getRankManager().getRankColor(player) + player.getName()).setScore(line--);
+        obj.getScore("§8" + getCurrentDate()).setScore(line--);
+        obj.getScore("§f").setScore(line--);
+
+        // Player greeting with rank color
+        String rankColor = plugin.getCore().getRankManager().getRankColor(player);
+        obj.getScore("§7Hallo, " + rankColor + player.getName()).setScore(line--);
         obj.getScore("§f ").setScore(line--);
 
-        obj.getScore("§6§lSpielmodi").setScore(line--);
-        obj.getScore(" §eSolo §8• §7" + getPlayingCount(GameMode.SOLO) + " Spieler").setScore(line--);
-        obj.getScore(" §aDuo  §8• §7" + getPlayingCount(GameMode.DUO) + " Spieler").setScore(line--);
-        obj.getScore(" §b4x4  §8• §7" + getPlayingCount(GameMode.TEAM) + " Spieler").setScore(line--);
+        // Game modes with player counts
+        obj.getScore("§e§lSpielmodi:").setScore(line--);
+        obj.getScore(" §8▸ §eSolo: §7" + getPlayingCount(GameMode.SOLO)).setScore(line--);
+        obj.getScore(" §8▸ §aDuo: §7" + getPlayingCount(GameMode.DUO)).setScore(line--);
+        obj.getScore(" §8▸ §bTeam: §7" + getPlayingCount(GameMode.TEAM)).setScore(line--);
         obj.getScore("§f  ").setScore(line--);
 
+        // Player stats
         me.leon.bedwars.managers.StatsManager.PlayerStats stats =
                 plugin.getStatsManager().getStats(player.getUniqueId());
 
         if (stats != null) {
-            obj.getScore("§6§lDeine Stats").setScore(line--);
-            obj.getScore(" §7Kills§8: §f" + stats.kills).setScore(line--);
-            obj.getScore(" §7Wins§8: §f" + stats.wins).setScore(line--);
-            obj.getScore(" §7K/D§8: §f" + String.format("%.2f", stats.getKD())).setScore(line--);
+            obj.getScore("§6§lDeine Stats:").setScore(line--);
+            obj.getScore(" §8▸ §fKills: §a" + stats.kills).setScore(line--);
+            obj.getScore(" §8▸ §fSiege: §a" + stats.wins).setScore(line--);
             obj.getScore("§f   ").setScore(line--);
         }
 
-        obj.getScore("§7➥ §eplay.homemc.org").setScore(line--);
-        obj.getScore("§8§m━━━━━━━━━━━━━━━").setScore(line--);
+        obj.getScore("§eplay.homemc.org").setScore(line--);
 
         player.setScoreboard(board);
+    }
+
+    private String getCurrentDate() {
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd.MM.yyyy");
+        return sdf.format(new java.util.Date());
     }
 
     private int getPlayingCount(GameMode mode) {
