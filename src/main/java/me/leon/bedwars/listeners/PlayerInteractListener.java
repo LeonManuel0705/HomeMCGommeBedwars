@@ -28,10 +28,17 @@ public class PlayerInteractListener implements Listener {
         if (arena == null) return;
 
         if (event.getItem() != null && event.getItem().getType() == Material.BED &&
-                arena.getGameState() == GameState.WAITING || arena.getGameState() == GameState.STARTING) {
+                (arena.getGameState() == GameState.WAITING || arena.getGameState() == GameState.STARTING)) {
 
             event.setCancelled(true);
             plugin.getTeamManager().openTeamSelector(player, arena);
+            return;
+        }
+
+        if (arena.getGameState() == GameState.WAITING || arena.getGameState() == GameState.STARTING) {
+            if (event.getClickedBlock() != null && event.getClickedBlock().getType() == Material.BED_BLOCK) {
+                event.setCancelled(true);
+            }
         }
     }
 

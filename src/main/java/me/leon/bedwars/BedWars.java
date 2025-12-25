@@ -2,6 +2,7 @@ package me.leon.bedwars;
 
 import me.leon.bedwars.commands.*;
 import me.leon.bedwars.game.*;
+import me.leon.bedwars.gui.PrivateRoundGUI;
 import me.leon.bedwars.listeners.*;
 import me.leon.bedwars.lobby.*;
 import me.leon.bedwars.managers.*;
@@ -29,6 +30,9 @@ public class BedWars extends JavaPlugin {
     private LobbyManager lobbyManager;
     private NametagManager nametagManager;
     private BuildManager buildManager;
+    private NPCManager npcManager;
+    private PrivateRoundManager privateRoundManager;
+    private PrivateRoundGUI privateRoundGUI;
 
     public static final String PREFIX = "§cBedwars §8» ";
 
@@ -79,6 +83,9 @@ public class BedWars extends JavaPlugin {
         this.lobbyManager = new LobbyManager(this);
         this.buildManager = new BuildManager(this);
         this.gameManager = new GameManager(this);
+        this.npcManager = new NPCManager(this);
+        this.privateRoundManager = new PrivateRoundManager(this);
+        this.privateRoundGUI = new PrivateRoundGUI(this);
 
         arenaManager.loadArenas();
     }
@@ -94,6 +101,9 @@ public class BedWars extends JavaPlugin {
         getCommand("hub").setExecutor(new HubCommand(this));
         getCommand("join").setExecutor(new BedWarsCommand(this));
         getCommand("forcestart").setExecutor(new ForceStartCommand(this));
+        getCommand("forcestartprivate").setExecutor(new ForceStartPrivateCommand(this));
+        getCommand("bwnpc").setExecutor(new NPCCommand(this));
+        getCommand("private").setExecutor(new PrivateCommand(this));
     }
 
     private void registerListeners() {
@@ -119,6 +129,8 @@ public class BedWars extends JavaPlugin {
         pm.registerEvents(new ExplosionListener(this), this);
         pm.registerEvents(new PotionListener(this), this);
         pm.registerEvents(new RescuePlatformListener(this), this);
+        pm.registerEvents(new NPCClickListener(this), this);
+        pm.registerEvents(privateRoundGUI, this);
     }
 
     private void startTasks() {
@@ -193,5 +205,17 @@ public class BedWars extends JavaPlugin {
 
     public BuildManager getBuildManager() {
         return buildManager;
+    }
+
+    public NPCManager getNPCManager() {
+        return npcManager;
+    }
+
+    public PrivateRoundManager getPrivateRoundManager() {
+        return privateRoundManager;
+    }
+
+    public PrivateRoundGUI getPrivateRoundGUI() {
+        return privateRoundGUI;
     }
 }

@@ -46,9 +46,20 @@ commands:
     description: Stoppe das aktuelle Spiel
   build:
     description: Build-Modus in der Lobby
+  bwnpc:
+    description: NPC Management
+    aliases: [bedwarsnpc]
+  private:
+    description: Private Runden erstellen und verwalten
+    aliases: [privaterunde, pr]
+  forcestartprivate:
+    description: Force-Start einer privaten Runde
+    aliases: [fsp]
 
 permissions:
   bedwars.forcestart:
+    default: op
+  bedwars.forcestartprivate:
     default: op
   bedwars.setup:
     default: op
@@ -58,3 +69,7 @@ permissions:
     default: op
   bedwars.see-hidden:
     default: op
+  bedwars.admin:
+    default: op
+  bedwars.private:
+    default: false

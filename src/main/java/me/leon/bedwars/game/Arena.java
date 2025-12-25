@@ -2,6 +2,7 @@ package me.leon.bedwars.game;
 
 import me.leon.bedwars.BedWars;
 import me.leon.bedwars.lobby.LobbyManager;
+import me.leon.bedwars.managers.PrivateRoundManager.PrivateRound;
 import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -77,6 +78,17 @@ public class Arena {
     }
 
     public void addPlayer(Player player) {
+        // Auto-delete private round when joining official arena
+        PrivateRound privateRound = plugin.getPrivateRoundManager().getPlayerRound(player.getUniqueId());
+        if (privateRound != null) {
+            if (privateRound.getCreator().equals(player.getUniqueId())) {
+                plugin.getPrivateRoundManager().deletePrivateRound(privateRound);
+                player.sendMessage(BedWars.PREFIX + "§eDeine private Runde wurde gelöscht, da du einer offiziellen Runde beigetreten bist.");
+            } else {
+                plugin.getPrivateRoundManager().leavePrivateRound(player);
+            }
+        }
+
         players.add(player.getUniqueId());
 
         BedWarsTeam team = getSmallestTeam();
@@ -187,10 +199,14 @@ public class Arena {
         goldTimer = 0;
         countdown = 60;
 
+        cleanupMap();
+        restoreBeds();
+
         players.clear();
         spectators.clear();
         deadPlayers.clear();
         placedBlocks.clear();
+        goldVotes.clear();
         removeShopVillagers();
 
         for (BedWarsTeam team : teams.values()) {
@@ -201,6 +217,45 @@ public class Arena {
             countdownTask.cancel();
             countdownTask = null;
         }
+    }
+
+    private void restoreBeds() {
+        for (BedWarsTeam team : teams.values()) {
+            Location bedLoc = team.getBedLocation();
+            if (bedLoc != null && bedLoc.getWorld() != null) {
+                org.bukkit.block.Block bedBlock = bedLoc.getBlock();
+
+                if (bedBlock.getType() != Material.BED_BLOCK) {
+                    byte bedData = getBedDataForTeam(team);
+
+                    bedBlock.setType(Material.BED_BLOCK);
+                    bedBlock.setData(bedData);
+
+                    org.bukkit.block.Block headBlock = getSecondBedBlock(bedBlock, bedData);
+                    if (headBlock != null && headBlock.getType() != Material.BED_BLOCK) {
+                        headBlock.setType(Material.BED_BLOCK);
+                        headBlock.setData((byte) (bedData | 0x8));
+                    }
+
+                    plugin.getLogger().info("Restored bed for team " + team.getColor().name());
+                }
+            }
+        }
+    }
+
+    private org.bukkit.block.Block getSecondBedBlock(org.bukkit.block.Block footBlock, byte data) {
+        int direction = data & 0x3;
+        switch (direction) {
+            case 0: return footBlock.getRelative(0, 0, 1);
+            case 1: return footBlock.getRelative(-1, 0, 0);
+            case 2: return footBlock.getRelative(0, 0, -1);
+            case 3: return footBlock.getRelative(1, 0, 0);
+            default: return footBlock.getRelative(0, 0, 1);
+        }
+    }
+
+    private byte getBedDataForTeam(BedWarsTeam team) {
+        return 0;
     }
 
     private void removeShopVillagers() {

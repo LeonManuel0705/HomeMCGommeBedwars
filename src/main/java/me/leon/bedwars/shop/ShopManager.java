@@ -491,6 +491,8 @@ public class ShopManager {
             ItemStack item = new ItemStack(material, amount, data);
             ItemMeta meta = item.getItemMeta();
 
+            meta.setDisplayName(name);
+
             if (enchantments != null) {
                 for (EnchantData enchant : enchantments) {
                     meta.addEnchant(enchant.enchantment, enchant.level, true);
