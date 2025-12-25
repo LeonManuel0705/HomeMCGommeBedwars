@@ -373,6 +373,13 @@ public class Arena {
             }
         }
 
+        for (UUID uuid : players) {
+            org.bukkit.entity.Player player = plugin.getServer().getPlayer(uuid);
+            if (player != null) {
+                player.getEnderChest().clear();
+            }
+        }
+
         if (lobby != null && lobby.getWorld() != null) {
             for (org.bukkit.entity.Entity entity : lobby.getWorld().getEntities()) {
                 if (entity instanceof org.bukkit.entity.Item) {
@@ -570,9 +577,9 @@ public class Arena {
     }
 
     public enum GeneratorType {
-        BRONZE(1), // Jede Sekunde
-        IRON(5),   // Alle 5 Sekunden
-        GOLD(10);  // Alle 10 Sekunden
+        BRONZE(1),
+        IRON(5),
+        GOLD(10);
 
         private final int spawnRate;
 

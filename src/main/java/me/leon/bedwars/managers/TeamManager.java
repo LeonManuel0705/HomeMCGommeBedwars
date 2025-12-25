@@ -188,7 +188,6 @@ public class TeamManager {
             return color.getColorCode() + color.getDisplayName();
         }
 
-        // Getter & Setter
         public TeamColor getColor() { return color; }
         public Set<UUID> getPlayers() { return players; }
         public int getMaxPlayers() { return maxPlayers; }

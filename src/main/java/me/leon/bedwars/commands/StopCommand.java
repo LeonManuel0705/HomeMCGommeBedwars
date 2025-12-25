@@ -27,7 +27,6 @@ public class StopCommand implements CommandExecutor {
 
         if (!player.hasPermission("bedwars.stop")) {
             RankManager.RankData mod = plugin.getCore().getRankManager().getRankData("homemc.mod");
-            String modPrefix = mod.prefix;
             String modColor = mod.color;
             String modName = mod.displayName;
             String modFormatted = modColor + modName;
@@ -38,15 +37,37 @@ public class StopCommand implements CommandExecutor {
             return true;
         }
 
-        Arena arena = plugin.getGameManager().getArenaByPlayer(player.getUniqueId());
+        Arena arena;
 
-        if (arena == null) {
-            player.sendMessage("§cDu bist in keiner Arena!");
-            return true;
+        if (args.length > 0) {
+            arena = plugin.getGameManager().getArena(args[0]);
+            if (arena == null) {
+                player.sendMessage("§cArena '§e" + args[0] + "§c' nicht gefunden!");
+                player.sendMessage("§7Verfügbare Arenen:");
+                for (Arena a : plugin.getArenaManager().getArenas()) {
+                    String status = a.getGameState().name();
+                    player.sendMessage("§8- §e" + a.getName() + " §7(" + status + ")");
+                }
+                return true;
+            }
+        } else {
+            arena = plugin.getGameManager().getArenaByPlayer(player.getUniqueId());
+            if (arena == null) {
+                player.sendMessage("§cDu bist in keiner Arena!");
+                player.sendMessage("§7Nutze §e/stop <arena> §7um eine Arena zu stoppen.");
+                player.sendMessage("§7Verfügbare Arenen:");
+                for (Arena a : plugin.getArenaManager().getArenas()) {
+                    String status = a.getGameState().name();
+                    player.sendMessage("§8- §e" + a.getName() + " §7(" + status + ")");
+                }
+                return true;
+            }
         }
 
         arena.broadcastMessage("§c§lSPIEL ABGEBROCHEN!");
         arena.broadcastMessage("§7Das Spiel wurde von einem Teammitglied abgebrochen.");
+
+        player.sendMessage("§aArena §e" + arena.getName() + " §awurde gestoppt!");
 
         arena.forceEnd();
 

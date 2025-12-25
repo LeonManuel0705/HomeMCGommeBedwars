@@ -9,9 +9,14 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 public class PlayerDeathListener implements Listener {
 
     private final BedWars plugin;
+    private final Set<UUID> processingDeath = new HashSet<>();
 
     public PlayerDeathListener(BedWars plugin) {
         this.plugin = plugin;
@@ -24,6 +29,15 @@ public class PlayerDeathListener implements Listener {
 
         if (arena == null || arena.getGameState() != GameState.INGAME) return;
 
+        if (processingDeath.contains(player.getUniqueId())) {
+            event.setDeathMessage(null);
+            event.getDrops().clear();
+            event.setDroppedExp(0);
+            return;
+        }
+
+        processingDeath.add(player.getUniqueId());
+
         event.setDeathMessage(null);
         event.getDrops().clear();
         event.setDroppedExp(0);
@@ -31,10 +45,10 @@ public class PlayerDeathListener implements Listener {
         Player killer = player.getKiller();
         BedWarsTeam playerTeam = getPlayerTeam(arena, player);
 
-        if (playerTeam == null) return;
-
-        String deathMsg = getDeathMessage(arena, player, killer, playerTeam);
-        arena.broadcastMessage(deathMsg);
+        if (playerTeam == null) {
+            processingDeath.remove(player.getUniqueId());
+            return;
+        }
 
         if (killer != null && killer != player) {
             plugin.getStatsManager().addKill(killer.getUniqueId());
@@ -42,6 +56,9 @@ public class PlayerDeathListener implements Listener {
         plugin.getStatsManager().addDeath(player.getUniqueId());
 
         if (playerTeam.isBedAlive()) {
+            String deathMsg = getDeathMessage(arena, player, killer, playerTeam);
+            arena.broadcastMessage(deathMsg);
+
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (player.isOnline()) {
                     player.spigot().respawn();
@@ -54,10 +71,14 @@ public class PlayerDeathListener implements Listener {
 
                     plugin.getNametagManager().setGameNametag(player, playerTeam);
                 }
+                processingDeath.remove(player.getUniqueId());
             }, 1L);
         } else {
             arena.getDeadPlayers().add(player.getUniqueId());
-            player.sendMessage("§cDu wurdest eliminiert!");
+
+            arena.broadcastMessage("§b§lFINAL KILL! " + playerTeam.getColor().getColorCode() +
+                    getPlayerName(player) + " §7wurde " + (killer != null && killer != player ?
+                    "von " + getPlayerTeam(arena, killer).getColor().getColorCode() + getPlayerName(killer) + " §7" : "") + "eliminiert!");
 
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 if (player.isOnline()) {
@@ -70,13 +91,12 @@ public class PlayerDeathListener implements Listener {
                         player.teleport(playerTeam.getSpawn());
                     }
 
+                    player.sendMessage("§cDu wurdest eliminiert!");
                     arena.getSpectators().add(player.getUniqueId());
                     plugin.getNametagManager().setSpectatorNametag(player);
                 }
+                processingDeath.remove(player.getUniqueId());
             }, 1L);
-
-            arena.broadcastMessage("§b§lFINAL KILL! " + playerTeam.getColor().getColorCode() +
-                    getPlayerName(player) + " §7(" + playerTeam.getColoredName() + "§7) wurde eliminiert!");
         }
     }
 
@@ -84,7 +104,7 @@ public class PlayerDeathListener implements Listener {
         String color = playerTeam.getColor().getColorCode();
         String playerName = color + getPlayerName(player);
 
-        if (killer == null) {
+        if (killer == null || killer == player) {
             return playerName + " §7ist gestorben";
         }
 
@@ -99,7 +119,7 @@ public class PlayerDeathListener implements Listener {
         if (plugin.getCore().getNickManager().isNicked(player.getUniqueId())) {
             return plugin.getCore().getNickManager().getDisplayName(player.getUniqueId());
         }
-        return plugin.getCore().getRankManager().getRankColor(player) + player.getName();
+        return player.getName();
     }
 
     private BedWarsTeam getPlayerTeam(Arena arena, Player player) {

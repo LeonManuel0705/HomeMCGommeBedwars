@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 
 import java.util.*;
 
-// ==================== GAME MANAGER ====================
 public class GameManager {
 
     private final BedWars plugin;

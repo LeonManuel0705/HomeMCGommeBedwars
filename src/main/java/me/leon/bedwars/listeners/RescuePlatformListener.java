@@ -3,11 +3,14 @@ package me.leon.bedwars.listeners;
 import me.leon.bedwars.BedWars;
 import me.leon.bedwars.game.Arena;
 import me.leon.bedwars.game.GameState;
+import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 
@@ -21,6 +24,10 @@ public class RescuePlatformListener implements Listener {
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+
         Player player = event.getPlayer();
         Arena arena = plugin.getGameManager().getArenaByPlayer(player.getUniqueId());
 
@@ -36,31 +43,66 @@ public class RescuePlatformListener implements Listener {
 
         event.setCancelled(true);
 
-        if (item.getAmount() > 1) {
-            item.setAmount(item.getAmount() - 1);
-        } else {
-            player.setItemInHand(null);
-        }
-
         Location playerLoc = player.getLocation();
-        Location platformLoc = playerLoc.clone().subtract(0, 1, 0);
+        Location platformCenter = playerLoc.clone().subtract(0, 2, 0);
 
-        while (platformLoc.getBlock().getType() == Material.AIR && platformLoc.getY() > 0) {
-            platformLoc.subtract(0, 1, 0);
+        if (platformCenter.getY() < 1) {
+            player.sendMessage("§cDu bist zu tief für eine Rettungsplattform!");
+            return;
         }
 
-        platformLoc.add(0, 1, 0);
+        BedWarsTeam team = getPlayerTeam(arena, player);
+        Material woolMaterial = Material.WOOL;
+        byte woolData = team != null ? (byte) team.getColor().getData() : 0;
 
+        int blocksPlaced = 0;
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                Location blockLoc = platformLoc.clone().add(x, 0, z);
-                blockLoc.getBlock().setType(Material.GLASS);
+                Location blockLoc = platformCenter.clone().add(x, 0, z);
+                Block block = blockLoc.getBlock();
 
-                arena.getPlacedBlocks().add(blockLoc);
+                if (block.getType() == Material.AIR) {
+                    block.setType(woolMaterial);
+                    block.setData(woolData);
+                    arena.getPlacedBlocks().add(blockLoc.clone());
+                    blocksPlaced++;
+                }
             }
         }
 
-        player.sendMessage("§aRettungsplattform aktiviert!");
-        player.playSound(player.getLocation(), org.bukkit.Sound.GLASS, 1.0f, 1.0f);
+        if (blocksPlaced > 0) {
+            if (item.getAmount() > 1) {
+                item.setAmount(item.getAmount() - 1);
+            } else {
+                player.setItemInHand(null);
+            }
+
+            player.sendMessage("§aRettungsplattform aktiviert!");
+            player.playSound(player.getLocation(), org.bukkit.Sound.GLASS, 1.0f, 1.0f);
+
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                for (int x = -1; x <= 1; x++) {
+                    for (int z = -1; z <= 1; z++) {
+                        Location blockLoc = platformCenter.clone().add(x, 0, z);
+                        Block block = blockLoc.getBlock();
+                        if (block.getType() == woolMaterial) {
+                            block.setType(Material.AIR);
+                            arena.getPlacedBlocks().remove(blockLoc);
+                        }
+                    }
+                }
+            }, 100L);
+        } else {
+            player.sendMessage("§cKein Platz für die Plattform!");
+        }
+    }
+
+    private BedWarsTeam getPlayerTeam(Arena arena, Player player) {
+        for (BedWarsTeam team : arena.getTeams().values()) {
+            if (team.getPlayers().contains(player.getUniqueId())) {
+                return team;
+            }
+        }
+        return null;
     }
 }

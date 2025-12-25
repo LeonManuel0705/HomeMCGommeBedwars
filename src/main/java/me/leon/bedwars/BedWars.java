@@ -3,10 +3,8 @@ package me.leon.bedwars;
 import me.leon.bedwars.commands.*;
 import me.leon.bedwars.game.*;
 import me.leon.bedwars.listeners.*;
-import me.leon.bedwars.managers.*;
 import me.leon.bedwars.lobby.*;
-import me.leon.bedwars.shop.*;
-import me.leon.bedwars.utils.*;
+import me.leon.bedwars.managers.*;
 import me.leon.bedwars.shop.ShopManager;
 import me.leon.bedwars.utils.ConfigManager;
 import me.leon.core.Core;
@@ -118,6 +116,9 @@ public class BedWars extends JavaPlugin {
         pm.registerEvents(new PlayerChatListener(this), this);
         pm.registerEvents(new LobbyListener(this), this);
         pm.registerEvents(new VillagerProtectionListener(), this);
+        pm.registerEvents(new ExplosionListener(this), this);
+        pm.registerEvents(new PotionListener(this), this);
+        pm.registerEvents(new RescuePlatformListener(this), this);
     }
 
     private void startTasks() {

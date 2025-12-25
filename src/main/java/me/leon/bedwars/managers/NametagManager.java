@@ -1,15 +1,12 @@
 package me.leon.bedwars.managers;
 
 import me.leon.bedwars.BedWars;
-import me.leon.bedwars.game.Arena;
 import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
 import me.leon.bedwars.managers.TeamManager.TeamColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
-
-import java.util.UUID;
 
 public class NametagManager {
 
@@ -36,12 +33,7 @@ public class NametagManager {
     }
 
     private void updateScoreboardTeamFor(Player viewer, Player target, TeamColor teamColor, String prefix) {
-        Scoreboard board = viewer.getScoreboard();
-
-        if (board == null || board == Bukkit.getScoreboardManager().getMainScoreboard()) {
-            board = Bukkit.getScoreboardManager().getNewScoreboard();
-            viewer.setScoreboard(board);
-        }
+        Scoreboard board = plugin.getScoreboardManager().getOrCreateScoreboard(viewer);
 
         String scoreboardTeamName = getScoreboardTeamName(teamColor);
 
@@ -65,14 +57,14 @@ public class NametagManager {
 
     private String getScoreboardTeamName(TeamColor color) {
         switch (color) {
-            case AQUA: return "0_cyan";      // A
-            case BLUE: return "1_blau";      // B
-            case GRAY: return "2_grau";      // G
-            case GREEN: return "3_gruen";    // G
-            case PINK: return "4_pink";      // P
-            case RED: return "5_rot";        // R
-            case WHITE: return "6_weiss";    // W
-            case YELLOW: return "7_gelb";    // Y
+            case AQUA: return "0_cyan";
+            case BLUE: return "1_blau";
+            case GRAY: return "2_grau";
+            case GREEN: return "3_gruen";
+            case PINK: return "4_pink";
+            case RED: return "5_rot";
+            case WHITE: return "6_weiss";
+            case YELLOW: return "7_gelb";
             default: return "8_default";
         }
     }
@@ -95,12 +87,7 @@ public class NametagManager {
         String prefix = "§7[SPEC] ";
 
         for (Player online : Bukkit.getOnlinePlayers()) {
-            Scoreboard board = online.getScoreboard();
-
-            if (board == null || board == Bukkit.getScoreboardManager().getMainScoreboard()) {
-                board = Bukkit.getScoreboardManager().getNewScoreboard();
-                online.setScoreboard(board);
-            }
+            Scoreboard board = plugin.getScoreboardManager().getOrCreateScoreboard(online);
 
             String teamName = "9_spec";
             Team sbTeam = board.getTeam(teamName);
@@ -118,6 +105,34 @@ public class NametagManager {
         }
 
         player.setPlayerListName("§7[SPEC] " + player.getName());
+    }
+
+    public void hideNametag(Player player) {
+        player.setPlayerListName("§7" + player.getName());
+
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            Scoreboard board = plugin.getScoreboardManager().getOrCreateScoreboard(online);
+
+            String teamName = "z_invis";
+            Team sbTeam = board.getTeam(teamName);
+
+            if (sbTeam == null) {
+                sbTeam = board.registerNewTeam(teamName);
+            }
+
+            sbTeam.setPrefix("");
+            sbTeam.setSuffix("");
+
+            for (Team existingTeam : board.getTeams()) {
+                if (existingTeam.hasEntry(player.getName()) && !existingTeam.getName().equals(teamName)) {
+                    existingTeam.removeEntry(player.getName());
+                }
+            }
+
+            if (!sbTeam.hasEntry(player.getName())) {
+                sbTeam.addEntry(player.getName());
+            }
+        }
     }
 
     public void resetNametag(Player player) {

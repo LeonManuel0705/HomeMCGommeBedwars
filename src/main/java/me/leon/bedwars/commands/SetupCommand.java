@@ -3,6 +3,7 @@ package me.leon.bedwars.commands;
 import me.leon.bedwars.BedWars;
 import me.leon.bedwars.game.Arena;
 import me.leon.bedwars.game.Arena.GeneratorType;
+import me.leon.bedwars.lobby.LobbyManager;
 import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
 import me.leon.bedwars.managers.TeamManager.TeamColor;
 import me.leon.core.managers.RankManager;
@@ -10,8 +11,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import me.leon.bedwars.lobby.LobbyManager;
-import me.leon.bedwars.managers.TeamManager.TeamColor;
 
 public class SetupCommand implements CommandExecutor {
 

@@ -366,10 +366,6 @@ public class ShopManager {
     }
 
     private int convertSlotToIndex(int slot) {
-        // Slot 10-16 → Index 0-6
-        // Slot 19-25 → Index 7-13
-        // Slot 28-34 → Index 14-20
-
         if (slot >= 10 && slot <= 16) {
             return slot - 10;
         } else if (slot >= 19 && slot <= 25) {

@@ -3,21 +3,37 @@ package me.leon.bedwars.managers;
 import me.leon.bedwars.BedWars;
 import me.leon.bedwars.game.Arena;
 import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class ScoreboardManager {
 
     private final BedWars plugin;
+    private final Map<UUID, Scoreboard> playerScoreboards = new HashMap<>();
 
     public ScoreboardManager(BedWars plugin) {
         this.plugin = plugin;
     }
 
+    public Scoreboard getOrCreateScoreboard(Player player) {
+        UUID uuid = player.getUniqueId();
+        if (!playerScoreboards.containsKey(uuid)) {
+            Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
+            playerScoreboards.put(uuid, board);
+            player.setScoreboard(board);
+        }
+        return playerScoreboards.get(uuid);
+    }
+
     public void createGameScoreboard(Arena arena) {
-        for (java.util.UUID uuid : arena.getPlayers()) {
+        for (UUID uuid : arena.getPlayers()) {
             Player player = plugin.getServer().getPlayer(uuid);
             if (player != null) {
                 updatePlayerScoreboard(player, arena);
@@ -26,7 +42,7 @@ public class ScoreboardManager {
     }
 
     public void updateScoreboard(Arena arena) {
-        for (java.util.UUID uuid : arena.getPlayers()) {
+        for (UUID uuid : arena.getPlayers()) {
             Player player = plugin.getServer().getPlayer(uuid);
             if (player != null) {
                 updatePlayerScoreboard(player, arena);
@@ -35,13 +51,19 @@ public class ScoreboardManager {
     }
 
     private void updatePlayerScoreboard(Player player, Arena arena) {
-        Scoreboard board = plugin.getServer().getScoreboardManager().getNewScoreboard();
-        Objective obj = board.registerNewObjective("bedwars", "dummy");
+        Scoreboard board = getOrCreateScoreboard(player);
+
+        Objective obj = board.getObjective("bedwars");
+        if (obj != null) {
+            obj.unregister();
+        }
+
+        obj = board.registerNewObjective("bedwars", "dummy");
         obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         obj.setDisplayName("§f§lHOMEMC");
 
         int line = 15;
-        obj.getScore("§7" + getCurrentDate()).setScore(line--); // Datum oben
+        obj.getScore("§7" + getCurrentDate()).setScore(line--);
         obj.getScore("§f").setScore(line--);
 
         if (arena.isGoldEnabled()) {
@@ -52,7 +74,6 @@ public class ScoreboardManager {
 
         obj.getScore(" §f").setScore(line--);
 
-        // Map-Name
         obj.getScore("§fMap: §e" + arena.getDisplayName()).setScore(line--);
 
         obj.getScore("  §f").setScore(line--);
@@ -75,6 +96,7 @@ public class ScoreboardManager {
     }
 
     public void removeScoreboard(Player player) {
+        playerScoreboards.remove(player.getUniqueId());
         player.setScoreboard(plugin.getServer().getScoreboardManager().getMainScoreboard());
     }
 }

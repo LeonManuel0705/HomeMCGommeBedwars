@@ -26,19 +26,19 @@ public class GeneratorManager {
 
             switch (gen.getType()) {
                 case BRONZE:
-                    if (gen.getTimer() >= 1.2) { // 1.2 Sekunden
+                    if (gen.getTimer() >= 1.2) {
                         shouldSpawn = true;
                         material = Material.CLAY_BRICK;
                     }
                     break;
                 case IRON:
-                    if (gen.getTimer() >= 25) { // 25 Sekunden
+                    if (gen.getTimer() >= 25) {
                         shouldSpawn = true;
                         material = Material.IRON_INGOT;
                     }
                     break;
                 case GOLD:
-                    if (arena.isGoldEnabled() && gen.getTimer() >= 80) { // 80 Sekunden
+                    if (arena.isGoldEnabled() && gen.getTimer() >= 80) {
                         shouldSpawn = true;
                         material = Material.GOLD_INGOT;
                     }
