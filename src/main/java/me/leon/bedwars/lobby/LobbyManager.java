@@ -84,6 +84,23 @@ public class LobbyManager {
         compass.setItemMeta(compassMeta);
         player.getInventory().setItem(0, compass);
 
+        // Slot 2: Cosmetics
+        ItemStack cosmetics = new ItemStack(Material.CHEST);
+        ItemMeta cosmeticsMeta = cosmetics.getItemMeta();
+        cosmeticsMeta.setDisplayName("§d§lKosmetik");
+        cosmeticsMeta.setLore(Arrays.asList(
+                "§7Passe dein Spielerlebnis an!",
+                "§f",
+                "§8▸ §cKill-Nachrichten",
+                "§8▸ §6Todes-Nachrichten",
+                "§8▸ §bBett-Sounds",
+                "§8▸ §dSieges-Tänze",
+                "§f",
+                "§eRechtsklick §7zum Öffnen"
+        ));
+        cosmetics.setItemMeta(cosmeticsMeta);
+        player.getInventory().setItem(2, cosmetics);
+
         // Slot 4: Stats - Shows player statistics
         ItemStack stats = new ItemStack(Material.PAPER);
         ItemMeta statsMeta = stats.getItemMeta();

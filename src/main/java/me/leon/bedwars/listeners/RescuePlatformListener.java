@@ -44,7 +44,8 @@ public class RescuePlatformListener implements Listener {
         event.setCancelled(true);
 
         Location playerLoc = player.getLocation();
-        Location platformCenter = playerLoc.clone().subtract(0, 2, 0);
+        // Platform spawns 1 block below player's feet for quicker activation when falling
+        Location platformCenter = playerLoc.clone().subtract(0, 1, 0);
 
         if (platformCenter.getY() < 1) {
             player.sendMessage("§cDu bist zu tief für eine Rettungsplattform!");
@@ -56,15 +57,22 @@ public class RescuePlatformListener implements Listener {
         byte woolData = team != null ? (byte) team.getColor().getData() : 0;
 
         int blocksPlaced = 0;
+        java.util.List<Location> placedLocations = new java.util.ArrayList<>();
+
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                Location blockLoc = platformCenter.clone().add(x, 0, z);
-                Block block = blockLoc.getBlock();
+                Block block = platformCenter.getWorld().getBlockAt(
+                        platformCenter.getBlockX() + x,
+                        platformCenter.getBlockY(),
+                        platformCenter.getBlockZ() + z
+                );
 
                 if (block.getType() == Material.AIR) {
                     block.setType(woolMaterial);
                     block.setData(woolData);
-                    arena.getPlacedBlocks().add(blockLoc.clone());
+                    Location blockLocation = block.getLocation();
+                    arena.getPlacedBlocks().add(blockLocation);
+                    placedLocations.add(blockLocation);
                     blocksPlaced++;
                 }
             }
@@ -80,15 +88,13 @@ public class RescuePlatformListener implements Listener {
             player.sendMessage("§aRettungsplattform aktiviert!");
             player.playSound(player.getLocation(), org.bukkit.Sound.GLASS, 1.0f, 1.0f);
 
+            // Remove platform after 5 seconds
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                for (int x = -1; x <= 1; x++) {
-                    for (int z = -1; z <= 1; z++) {
-                        Location blockLoc = platformCenter.clone().add(x, 0, z);
-                        Block block = blockLoc.getBlock();
-                        if (block.getType() == woolMaterial) {
-                            block.setType(Material.AIR);
-                            arena.getPlacedBlocks().remove(blockLoc);
-                        }
+                for (Location loc : placedLocations) {
+                    Block block = loc.getBlock();
+                    if (block.getType() == woolMaterial) {
+                        block.setType(Material.AIR);
+                        arena.getPlacedBlocks().remove(loc);
                     }
                 }
             }, 100L);

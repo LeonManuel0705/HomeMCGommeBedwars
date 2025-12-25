@@ -4,12 +4,14 @@ import me.leon.bedwars.BedWars;
 import me.leon.bedwars.game.Arena;
 import me.leon.bedwars.game.GameState;
 import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.player.*;
 
 import java.util.UUID;
 
@@ -69,14 +71,30 @@ public class BlockBreakListener implements Listener {
 
                 team.destroyBed(player);
 
-                event.getBlock().setType(Material.AIR);
-                if (event.getBlock().getRelative(0, 1, 0).getType() == Material.BED_BLOCK) {
-                    event.getBlock().getRelative(0, 1, 0).setType(Material.AIR);
-                }
+                // Remove both parts of the bed without dropping items
+                Block bedBlock = event.getBlock();
+                removeBedBlocks(bedBlock);
+
+                // Play custom bed destroy sound from cosmetics
+                plugin.getCosmeticsManager().playBedDestroySound(player, bedBlock.getLocation());
 
                 plugin.getStatsManager().addBedDestroy(player.getUniqueId());
 
                 return;
+            }
+        }
+    }
+
+    private void removeBedBlocks(Block block) {
+        // Set the block to air first
+        block.setType(Material.AIR, false);
+
+        // Check all adjacent blocks for the other half of the bed
+        BlockFace[] faces = {BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
+        for (BlockFace face : faces) {
+            Block relative = block.getRelative(face);
+            if (relative.getType() == Material.BED_BLOCK) {
+                relative.setType(Material.AIR, false);
             }
         }
     }

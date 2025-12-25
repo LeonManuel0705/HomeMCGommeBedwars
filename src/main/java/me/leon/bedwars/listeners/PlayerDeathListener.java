@@ -101,18 +101,20 @@ public class PlayerDeathListener implements Listener {
     }
 
     private String getDeathMessage(Arena arena, Player player, Player killer, BedWarsTeam playerTeam) {
-        String color = playerTeam.getColor().getColorCode();
-        String playerName = color + getPlayerName(player);
+        String playerColor = playerTeam.getColor().getColorCode();
+        String playerName = getPlayerName(player);
 
         if (killer == null || killer == player) {
-            return playerName + " §7ist gestorben";
+            // Use custom death message from cosmetics
+            return plugin.getCosmeticsManager().formatDeathMessage(playerName, playerColor, player.getUniqueId());
         }
 
         BedWarsTeam killerTeam = getPlayerTeam(arena, killer);
         String killerColor = killerTeam != null ? killerTeam.getColor().getColorCode() : "§f";
-        String killerName = killerColor + getPlayerName(killer);
+        String killerName = getPlayerName(killer);
 
-        return playerName + " §7wurde von " + killerName + " §7getötet";
+        // Use custom kill message from killer's cosmetics
+        return plugin.getCosmeticsManager().formatKillMessage(killerName, killerColor, playerName, playerColor, killer.getUniqueId());
     }
 
     private String getPlayerName(Player player) {

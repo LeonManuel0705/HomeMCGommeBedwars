@@ -1,6 +1,8 @@
 package me.leon.bedwars;
 
 import me.leon.bedwars.commands.*;
+import me.leon.bedwars.cosmetics.CosmeticsGUI;
+import me.leon.bedwars.cosmetics.CosmeticsManager;
 import me.leon.bedwars.game.*;
 import me.leon.bedwars.gui.PrivateRoundGUI;
 import me.leon.bedwars.listeners.*;
@@ -35,6 +37,8 @@ public class BedWars extends JavaPlugin {
     private PrivateRoundManager privateRoundManager;
     private PrivateRoundGUI privateRoundGUI;
     private PrivateCommand privateCommand;
+    private CosmeticsManager cosmeticsManager;
+    private CosmeticsGUI cosmeticsGUI;
 
     public static final String PREFIX = "§cBedwars §8» ";
 
@@ -91,6 +95,8 @@ public class BedWars extends JavaPlugin {
         this.npcManager = new NPCManager(this);
         this.privateRoundManager = new PrivateRoundManager(this);
         this.privateRoundGUI = new PrivateRoundGUI(this);
+        this.cosmeticsManager = new CosmeticsManager(this);
+        this.cosmeticsGUI = new CosmeticsGUI(this);
 
         arenaManager.loadArenas();
     }
@@ -138,6 +144,7 @@ public class BedWars extends JavaPlugin {
         pm.registerEvents(new RescuePlatformListener(this), this);
         pm.registerEvents(new NPCClickListener(this), this);
         pm.registerEvents(privateRoundGUI, this);
+        pm.registerEvents(cosmeticsGUI, this);
     }
 
     private void startTasks() {
@@ -228,6 +235,14 @@ public class BedWars extends JavaPlugin {
 
     public PrivateCommand getPrivateCommand() {
         return privateCommand;
+    }
+
+    public CosmeticsManager getCosmeticsManager() {
+        return cosmeticsManager;
+    }
+
+    public CosmeticsGUI getCosmeticsGUI() {
+        return cosmeticsGUI;
     }
 
     /**

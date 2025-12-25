@@ -39,6 +39,7 @@ public class LobbyListener implements Listener {
         plugin.getLobbyManager().sendToLobby(player);
 
         plugin.getStatsManager().loadStats(player.getUniqueId());
+        plugin.getCosmeticsManager().loadPlayerCosmetics(player.getUniqueId());
     }
 
     @EventHandler
@@ -49,6 +50,7 @@ public class LobbyListener implements Listener {
             plugin.getGameManager().leaveArena(player);
         }
 
+        plugin.getCosmeticsManager().unloadPlayerCosmetics(player.getUniqueId());
         hiddenPlayers.remove(player.getUniqueId());
     }
 
@@ -82,6 +84,11 @@ public class LobbyListener implements Listener {
         else if (item.getType() == Material.BLAZE_ROD || item.getType() == Material.BLAZE_POWDER) {
             event.setCancelled(true);
             togglePlayerVisibility(player);
+        }
+        // Chest - Cosmetics GUI
+        else if (item.getType() == Material.CHEST) {
+            event.setCancelled(true);
+            plugin.getCosmeticsGUI().openMainMenu(player);
         }
         // Nether Star - Private round GUI
         else if (item.getType() == Material.NETHER_STAR) {
