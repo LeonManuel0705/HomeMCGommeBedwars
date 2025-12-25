@@ -43,6 +43,7 @@ public class GameManager {
             oldArena.removePlayer(player, true);
         }
 
+        player.setAllowFlight(false);
         arena.addPlayer(player);
         playerArenas.put(player.getUniqueId(), arena);
     }
@@ -59,6 +60,9 @@ public class GameManager {
         playerArenas.remove(player.getUniqueId());
 
         plugin.getLobbyManager().sendToLobby(player);
+        if (player.hasPermission("homemc.fly")) {
+            player.setAllowFlight(true);
+        }
     }
 
     public Arena getArenaByPlayer(UUID uuid) {

@@ -25,7 +25,6 @@ public class BuildManager {
             buildMode.remove(uuid);
             player.setGameMode(GameMode.SURVIVAL);
             player.getInventory().clear();
-
             plugin.getLobbyManager().sendToLobby(player);
 
             player.sendMessage(BedWars.PREFIX + "§cBau-Modus deaktiviert!");

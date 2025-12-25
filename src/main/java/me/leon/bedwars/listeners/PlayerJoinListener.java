@@ -19,5 +19,9 @@ public class PlayerJoinListener implements Listener {
         Player player = event.getPlayer();
 
         plugin.getStatsManager().loadStats(player.getUniqueId());
+
+        if (player.hasPermission("homemc.fly")) {
+            player.setAllowFlight(true);
+        }
     }
 }

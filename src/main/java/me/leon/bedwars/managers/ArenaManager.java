@@ -8,6 +8,7 @@ import me.leon.bedwars.managers.TeamManager.TeamColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.util.*;
