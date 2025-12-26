@@ -319,7 +319,7 @@ public class PrivateCommand implements CommandExecutor {
         }
 
         Player creator = plugin.getServer().getPlayer(round.getCreator());
-        String creatorName = creator != null ? creator.getName() : "Unbekannt";
+        String creatorName = creator != null ? plugin.getDisplayName(creator) : "Unbekannt";
 
         player.sendMessage("§8§m=======§r §6§lPrivate Runde §8§m=======§r");
         player.sendMessage("§7Ersteller: §e" + creatorName);
@@ -333,7 +333,7 @@ public class PrivateCommand implements CommandExecutor {
             for (java.util.UUID uuid : round.getPlayers()) {
                 Player p = plugin.getServer().getPlayer(uuid);
                 if (p != null) {
-                    player.sendMessage("  §8- §f" + p.getName());
+                    player.sendMessage("  §8- §f" + plugin.getDisplayName(p));
                 }
             }
         }
@@ -465,8 +465,8 @@ public class PrivateCommand implements CommandExecutor {
         godModePlayers.remove(target.getUniqueId());
 
         target.sendMessage(BedWars.PREFIX + "§cDu wurdest aus der privaten Runde gekickt!");
-        player.sendMessage(BedWars.PREFIX + "§a" + target.getName() + " §7wurde aus der Runde gekickt!");
-        round.broadcastMessage("§c" + target.getName() + " §7wurde aus der Runde gekickt.");
+        player.sendMessage(BedWars.PREFIX + "§a" + plugin.getDisplayName(target) + " §7wurde aus der Runde gekickt!");
+        round.broadcastMessage("§c" + plugin.getDisplayName(target) + " §7wurde aus der Runde gekickt.");
     }
 
     private void sendHelp(Player player) {

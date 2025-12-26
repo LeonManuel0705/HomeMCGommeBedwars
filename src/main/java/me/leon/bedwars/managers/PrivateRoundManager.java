@@ -225,9 +225,9 @@ public class PrivateRoundManager {
 
         round.addInvitedPlayer(target.getUniqueId());
 
-        creator.sendMessage(BedWars.PREFIX + "§aDu hast §e" + target.getName() + " §aeingeladen!");
+        creator.sendMessage(BedWars.PREFIX + "§aDu hast §e" + plugin.getDisplayName(target) + " §aeingeladen!");
         target.sendMessage(BedWars.PREFIX + "§aDu wurdest zu einer privaten BedWars Runde eingeladen!");
-        target.sendMessage(BedWars.PREFIX + "§7Ersteller: §e" + creator.getName());
+        target.sendMessage(BedWars.PREFIX + "§7Ersteller: §e" + plugin.getDisplayName(creator));
         target.sendMessage(BedWars.PREFIX + "§7Nutze §e/private join " + creator.getName() + " §7zum Beitreten");
     }
 
@@ -255,7 +255,7 @@ public class PrivateRoundManager {
         Location lobby = translateLocation(round.getTemplateArena().getLobby(), round.getPrivateWorld());
         player.teleport(lobby);
 
-        round.broadcastMessage("§a" + player.getName() + " §7ist der Runde beigetreten!");
+        round.broadcastMessage("§a" + plugin.getDisplayName(player) + " §7ist der Runde beigetreten!");
     }
 
     public void startPrivateRound(Player creator) {
@@ -369,7 +369,7 @@ public class PrivateRoundManager {
             round.broadcastMessage("§cDer Ersteller hat die Runde verlassen. Runde wird beendet!");
             deletePrivateRound(round);
         } else {
-            round.broadcastMessage("§c" + player.getName() + " §7hat die Runde verlassen.");
+            round.broadcastMessage("§c" + plugin.getDisplayName(player) + " §7hat die Runde verlassen.");
         }
     }
 

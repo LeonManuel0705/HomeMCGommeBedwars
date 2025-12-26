@@ -151,7 +151,7 @@ public class PrivateRoundGUI implements Listener {
 
             ItemStack skull = new ItemStack(Material.SKULL_ITEM, 1, (short) 3);
             ItemMeta meta = skull.getItemMeta();
-            meta.setDisplayName("§e" + target.getName());
+            meta.setDisplayName("§e" + plugin.getDisplayName(target));
             meta.setLore(Arrays.asList("", "§aKlicke zum Einladen"));
             skull.setItemMeta(meta);
 
@@ -316,7 +316,14 @@ public class PrivateRoundGUI implements Listener {
 
         if (item.getType() == Material.SKULL_ITEM && item.hasItemMeta()) {
             String targetName = item.getItemMeta().getDisplayName().substring(2);
-            Player target = Bukkit.getPlayer(targetName);
+
+            Player target = null;
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (plugin.getDisplayName(p).equals(targetName) || p.getName().equals(targetName)) {
+                    target = p;
+                    break;
+                }
+            }
 
             if (target != null && target.isOnline()) {
                 player.closeInventory();

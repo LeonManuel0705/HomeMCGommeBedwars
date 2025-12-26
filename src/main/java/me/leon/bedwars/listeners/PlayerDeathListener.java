@@ -116,10 +116,7 @@ public class PlayerDeathListener implements Listener {
     }
 
     private String getPlayerName(Player player) {
-        if (plugin.getCore().getNickManager().isNicked(player.getUniqueId())) {
-            return plugin.getCore().getNickManager().getDisplayName(player.getUniqueId());
-        }
-        return player.getName();
+        return plugin.getDisplayName(player);
     }
 
     private BedWarsTeam getPlayerTeam(Arena arena, Player player) {

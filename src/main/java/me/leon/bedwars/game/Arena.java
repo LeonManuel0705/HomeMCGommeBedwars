@@ -518,7 +518,7 @@ public class Arena {
 
         goldEnabled = enableVotes > disableVotes;
 
-        broadcastMessage("§7" + player.getName() + " §7hat für §e" +
+        broadcastMessage("§7" + plugin.getDisplayName(player) + " §7hat für §e" +
                 (enable ? "Gold aktiviert" : "Gold deaktiviert") + " §7gestimmt!");
         broadcastMessage("§7Aktuell: §a" + enableVotes + " §7dafür, §c" + disableVotes + " §7dagegen");
 
@@ -594,9 +594,9 @@ public class Arena {
 
     private String getPlayerDisplayName(Player player) {
         if (plugin.getCore().getNickManager().isNicked(player.getUniqueId())) {
-            return "§7" + plugin.getCore().getNickManager().getDisplayName(player.getUniqueId());
+            return "§7" + plugin.getDisplayName(player);
         }
-        return plugin.getCore().getRankManager().getRankColor(player) + player.getName();
+        return plugin.getCore().getRankManager().getRankColor(player) + plugin.getDisplayName(player);
     }
 
     public void broadcastMessage(String message) {

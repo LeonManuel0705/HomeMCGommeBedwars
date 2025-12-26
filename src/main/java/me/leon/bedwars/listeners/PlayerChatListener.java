@@ -58,17 +58,14 @@ public class PlayerChatListener implements Listener {
     }
 
     private String getDisplayName(Player player) {
-        if (plugin.getCore().getNickManager().isNicked(player.getUniqueId())) {
-            return plugin.getCore().getNickManager().getDisplayName(player.getUniqueId());
-        }
-        return player.getName();
+        return plugin.getDisplayName(player);
     }
 
     private String getPlayerDisplayNameWithRank(Player player) {
         if (plugin.getCore().getNickManager().isNicked(player.getUniqueId())) {
-            return "§7" + plugin.getCore().getNickManager().getDisplayName(player.getUniqueId());
+            return "§7" + plugin.getDisplayName(player);
         }
-        return plugin.getCore().getRankManager().getRankColor(player) + player.getName();
+        return plugin.getCore().getRankManager().getRankColor(player) + plugin.getDisplayName(player);
     }
 
     private BedWarsTeam getPlayerTeam(Arena arena, Player player) {

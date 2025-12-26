@@ -34,10 +34,7 @@ public class NametagManager {
     }
 
     private String getDisplayName(Player player) {
-        if (plugin.getCore().getNickManager().isNicked(player.getUniqueId())) {
-            return plugin.getCore().getNickManager().getDisplayName(player.getUniqueId());
-        }
-        return player.getName();
+        return plugin.getDisplayName(player);
     }
 
     private void updateScoreboardTeamFor(Player viewer, Player target, TeamColor teamColor, String prefix, String displayName) {
@@ -117,7 +114,7 @@ public class NametagManager {
     }
 
     public void hideNametag(Player player) {
-        player.setPlayerListName("§7" + player.getName());
+        player.setPlayerListName("§7" + getDisplayName(player));
 
         for (Player online : Bukkit.getOnlinePlayers()) {
             Scoreboard board = plugin.getScoreboardManager().getOrCreateScoreboard(online);

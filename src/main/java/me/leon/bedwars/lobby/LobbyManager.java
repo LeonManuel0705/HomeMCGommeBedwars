@@ -170,7 +170,7 @@ public class LobbyManager {
         obj.getScore("§f").setScore(line--);
 
         String rankColor = plugin.getCore().getRankManager().getRankColor(player);
-        obj.getScore("§7Hallo, " + rankColor + player.getName()).setScore(line--);
+        obj.getScore("§7Hallo, " + rankColor + plugin.getDisplayName(player)).setScore(line--);
         obj.getScore("§f ").setScore(line--);
 
         obj.getScore("§e§lSpielmodi:").setScore(line--);
