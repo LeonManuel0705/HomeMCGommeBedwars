@@ -4,18 +4,11 @@ import me.leon.bedwars.BedWars;
 import me.leon.bedwars.lobby.LobbyManager;
 import me.leon.bedwars.managers.PrivateRoundManager.PrivateRound;
 import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
+import me.leon.bedwars.npc.ShopNPC;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Villager;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -78,7 +71,6 @@ public class Arena {
     }
 
     public void addPlayer(Player player) {
-        // Auto-delete private round when joining official arena
         PrivateRound privateRound = plugin.getPrivateRoundManager().getPlayerRound(player.getUniqueId());
         if (privateRound != null) {
             if (privateRound.getCreator().equals(player.getUniqueId())) {
@@ -107,7 +99,6 @@ public class Arena {
             broadcastMessage("§8[§a+§8] " + getPlayerDisplayName(player) + " §7hat das Spiel betreten §8(§e" +
                     players.size() + "§8/§e" + maxPlayers + "§8)");
 
-            // Update scoreboard for the player who joined
             plugin.getScoreboardManager().updateScoreboard(this);
 
             if (players.size() >= minPlayers && gameState == GameState.WAITING) {
@@ -139,28 +130,16 @@ public class Arena {
                     players.size() + "§8/§e" + maxPlayers + "§8)");
         }
 
+        if (gameState == GameState.WAITING || gameState == GameState.STARTING) {
+            plugin.getScoreboardManager().updateScoreboard(this);
+        }
+
         if (players.size() < minPlayers && gameState == GameState.STARTING) {
             stopCountdown();
         }
 
         if (gameState == GameState.INGAME) {
             checkWinCondition();
-        }
-    }
-
-    @EventHandler
-    public void onEntityDamage(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Villager &&
-                event.getEntity().hasMetadata("bw_npc")) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onEntityInteract(PlayerInteractEntityEvent event) {
-        if (event.getRightClicked() instanceof Villager &&
-                event.getRightClicked().hasMetadata("bw_npc")) {
-            event.setCancelled(true);
         }
     }
 
@@ -188,10 +167,8 @@ public class Arena {
                 Player player = plugin.getServer().getPlayer(uuid);
                 if (player != null) {
                     removePlayer(player, false);
-                    // Remove from GameManager's playerArenas map so lobby items work again
                     plugin.getGameManager().removePlayerFromArenaMap(uuid);
                     plugin.getLobbyManager().sendToLobby(player);
-                    // Re-enable fly for players with permission
                     if (player.hasPermission("homemc.fly")) {
                         player.setAllowFlight(true);
                     }
@@ -216,7 +193,7 @@ public class Arena {
         deadPlayers.clear();
         placedBlocks.clear();
         goldVotes.clear();
-        removeShopVillagers();
+        removeShopNPCs();
 
         for (BedWarsTeam team : teams.values()) {
             team.reset();
@@ -264,15 +241,30 @@ public class Arena {
     }
 
     private byte getBedDataForTeam(BedWarsTeam team) {
-        return 0;
+        Location bedLoc = team.getBedLocation();
+        if (bedLoc == null) return 0;
+
+        float yaw = bedLoc.getYaw();
+        while (yaw < 0) yaw += 360;
+        yaw = yaw % 360;
+
+        if (yaw >= 315 || yaw < 45) {
+            return 0;
+        } else if (yaw >= 45 && yaw < 135) {
+            return 1;
+        } else if (yaw >= 135 && yaw < 225) {
+            return 2;
+        } else {
+            return 3;
+        }
     }
 
-    private void removeShopVillagers() {
+    private void removeShopNPCs() {
         for (BedWarsTeam team : teams.values()) {
-            if (team.getShopVillagerEntity() != null && !team.getShopVillagerEntity().isDead()) {
-                team.getShopVillagerEntity().remove();
+            if (team.getShopNPC() != null) {
+                team.getShopNPC().destroy();
             }
-            team.setShopVillagerEntity(null);
+            team.setShopNPC(null);
         }
     }
 
@@ -343,7 +335,8 @@ public class Arena {
     private void giveTeamSelector(Player player) {
         player.getInventory().setItem(0, plugin.getTeamManager().getTeamSelectorItem());
 
-        // Give leave item in slot 8
+        player.getInventory().setItem(4, plugin.getTeamManager().getGoldVoteItem());
+
         org.bukkit.inventory.ItemStack leaveItem = new org.bukkit.inventory.ItemStack(Material.MAGMA_CREAM);
         org.bukkit.inventory.meta.ItemMeta leaveMeta = leaveItem.getItemMeta();
         leaveMeta.setDisplayName("§c§lSpiel verlassen");
@@ -398,7 +391,7 @@ public class Arena {
 
         broadcastMessage("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-        spawnShopVillagers();
+        spawnShopNPCs();
 
         for (BedWarsTeam team : teams.values()) {
             for (UUID uuid : team.getPlayers()) {
@@ -464,6 +457,11 @@ public class Arena {
                         entity.remove();
                     }
                 }
+                else if (entity instanceof org.bukkit.entity.Arrow) {
+                    if (isInArenaArea(entity.getLocation())) {
+                        entity.remove();
+                    }
+                }
             }
         }
 
@@ -474,7 +472,6 @@ public class Arena {
                     if (entity instanceof org.bukkit.entity.Item) {
                         entity.remove();
                     }
-                    // Remove hologram armor stands near generators
                     if (entity instanceof org.bukkit.entity.ArmorStand) {
                         org.bukkit.entity.ArmorStand armorStand = (org.bukkit.entity.ArmorStand) entity;
                         if (!armorStand.isVisible() || armorStand.isSmall() || armorStand.hasGravity() == false) {
@@ -524,6 +521,8 @@ public class Arena {
         broadcastMessage("§7" + player.getName() + " §7hat für §e" +
                 (enable ? "Gold aktiviert" : "Gold deaktiviert") + " §7gestimmt!");
         broadcastMessage("§7Aktuell: §a" + enableVotes + " §7dafür, §c" + disableVotes + " §7dagegen");
+
+        plugin.getScoreboardManager().updateScoreboard(this);
     }
 
     public int getGoldVotesYes() {
@@ -542,42 +541,17 @@ public class Arena {
         return count;
     }
 
-    private void spawnShopVillagers() {
+    private void spawnShopNPCs() {
         for (BedWarsTeam team : teams.values()) {
             if (team.getShopVillager() != null) {
                 Location loc = team.getShopVillager();
 
-                org.bukkit.entity.Villager villager = (org.bukkit.entity.Villager)
-                        loc.getWorld().spawnEntity(loc, org.bukkit.entity.EntityType.VILLAGER);
-
-                villager.setCustomName("§6§lSHOP");
-                villager.setCustomNameVisible(true);
-                villager.setCanPickupItems(false);
-                villager.setProfession(org.bukkit.entity.Villager.Profession.LIBRARIAN);
-
-                try {
-                    Object nmsEntity = villager.getClass().getMethod("getHandle").invoke(villager);
-                    Object goalSelector = nmsEntity.getClass().getDeclaredField("goalSelector").get(nmsEntity);
-                    Object targetSelector = nmsEntity.getClass().getDeclaredField("targetSelector").get(nmsEntity);
-
-                    java.lang.reflect.Field goalsField = goalSelector.getClass().getDeclaredField("b");
-                    goalsField.setAccessible(true);
-                    goalsField.set(goalSelector, new java.util.ArrayList<>());
-
-                    java.lang.reflect.Field targetsField = targetSelector.getClass().getDeclaredField("b");
-                    targetsField.setAccessible(true);
-                    targetsField.set(targetSelector, new java.util.ArrayList<>());
-
-                } catch (Exception e) {
-                    plugin.getLogger().warning("Konnte AI nicht via NMS deaktivieren: " + e.getMessage());
-                }
-
-                villager.setMetadata("bw_shop", new org.bukkit.metadata.FixedMetadataValue(plugin, team.getColor().name()));
+                ShopNPC shopNPC = new ShopNPC(UUID.randomUUID(), loc, team.getColor().name());
+                shopNPC.spawn();
+                team.setShopNPC(shopNPC);
 
                 Location blockLoc = loc.clone().subtract(0, 1, 0);
-                blockLoc.getBlock().setType(org.bukkit.Material.BARRIER);
-
-                team.setShopVillagerEntity(villager);
+                blockLoc.getBlock().setType(Material.BARRIER);
             }
         }
     }
@@ -597,10 +571,8 @@ public class Arena {
             Player player = plugin.getServer().getPlayer(uuid);
             if (player != null) {
                 removePlayer(player, false);
-                // Remove from GameManager's playerArenas map so lobby items work again
-                plugin.getGameManager().removePlayerFromArenaMap(uuid);
+                    plugin.getGameManager().removePlayerFromArenaMap(uuid);
                 plugin.getLobbyManager().sendToLobby(player);
-                // Re-enable fly for players with permission
                 if (player.hasPermission("homemc.fly")) {
                     player.setAllowFlight(true);
                 }

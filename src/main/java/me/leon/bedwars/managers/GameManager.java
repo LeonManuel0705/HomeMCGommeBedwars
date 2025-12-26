@@ -32,7 +32,6 @@ public class GameManager {
             return;
         }
 
-        // Allow spectators to join running games
         if (arena.getGameState() == GameState.INGAME) {
             joinAsSpectator(player, arena);
             return;
@@ -113,7 +112,6 @@ public class GameManager {
         player.getInventory().clear();
         player.getInventory().setArmorContents(null);
 
-        // Hide spectator from all players in arena
         for (UUID uuid : arena.getPlayers()) {
             Player arenaPlayer = plugin.getServer().getPlayer(uuid);
             if (arenaPlayer != null && !arena.getSpectators().contains(uuid)) {

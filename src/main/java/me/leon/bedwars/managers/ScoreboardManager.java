@@ -66,7 +66,6 @@ public class ScoreboardManager {
         int line = 15;
 
         if (arena.getGameState() == GameState.WAITING || arena.getGameState() == GameState.STARTING) {
-            // Waiting lobby scoreboard
             obj.getScore("§8" + getCurrentDate()).setScore(line--);
             obj.getScore("§f").setScore(line--);
 
@@ -83,7 +82,6 @@ public class ScoreboardManager {
             }
             obj.getScore("§f   ").setScore(line--);
 
-            // Gold vote status
             int goldYes = arena.getGoldVotesYes();
             int goldNo = arena.getGoldVotesNo();
             if (arena.isGoldEnabled()) {
@@ -95,7 +93,6 @@ public class ScoreboardManager {
 
             obj.getScore("§eplay.homemc.org").setScore(line--);
         } else {
-            // In-game scoreboard
             obj.getScore("§8" + getCurrentDate()).setScore(line--);
             obj.getScore("§f").setScore(line--);
 
@@ -109,9 +106,7 @@ public class ScoreboardManager {
             }
             obj.getScore("§f  ").setScore(line--);
 
-            // Team status - show all teams that started in the game
             for (BedWarsTeam team : arena.getTeams().values()) {
-                // Skip teams that never had players
                 if (!team.hasHadPlayers()) continue;
 
                 String bedStatus;

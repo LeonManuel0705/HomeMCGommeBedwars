@@ -105,7 +105,6 @@ public class PlayerDeathListener implements Listener {
         String playerName = getPlayerName(player);
 
         if (killer == null || killer == player) {
-            // Use custom death message from cosmetics
             return plugin.getCosmeticsManager().formatDeathMessage(playerName, playerColor, player.getUniqueId());
         }
 
@@ -113,7 +112,6 @@ public class PlayerDeathListener implements Listener {
         String killerColor = killerTeam != null ? killerTeam.getColor().getColorCode() : "§f";
         String killerName = getPlayerName(killer);
 
-        // Use custom kill message from killer's cosmetics
         return plugin.getCosmeticsManager().formatKillMessage(killerName, killerColor, playerName, playerColor, killer.getUniqueId());
     }
 

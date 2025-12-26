@@ -44,7 +44,6 @@ public class RescuePlatformListener implements Listener {
         event.setCancelled(true);
 
         Location playerLoc = player.getLocation();
-        // Platform spawns 1 block below player's feet for quicker activation when falling
         Location platformCenter = playerLoc.clone().subtract(0, 1, 0);
 
         if (platformCenter.getY() < 1) {
@@ -88,7 +87,6 @@ public class RescuePlatformListener implements Listener {
             player.sendMessage("§aRettungsplattform aktiviert!");
             player.playSound(player.getLocation(), org.bukkit.Sound.GLASS, 1.0f, 1.0f);
 
-            // Remove platform after 5 seconds
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 for (Location loc : placedLocations) {
                     Block block = loc.getBlock();

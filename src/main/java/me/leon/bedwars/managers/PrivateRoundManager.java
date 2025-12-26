@@ -51,7 +51,6 @@ public class PrivateRoundManager {
             return null;
         }
 
-        // Get the world from the arena's team spawns (which should be the map world)
         World arenaWorld = null;
         for (BedWarsTeam team : templateArena.getTeams().values()) {
             if (team.getSpawn() != null) {
@@ -72,7 +71,6 @@ public class PrivateRoundManager {
         UUID roundId = UUID.randomUUID();
         String worldName = "private_" + roundId.toString().substring(0, 8);
 
-        // Check if the arena is in use - warn but still create (uses current world state)
         if (templateArena.getGameState() == GameState.INGAME) {
             creator.sendMessage(BedWars.PREFIX + "§eHinweis: Die Map ist derzeit in Benutzung. Der aktuelle Spielstand wird kopiert.");
         }
@@ -87,7 +85,6 @@ public class PrivateRoundManager {
         privateRounds.put(roundId, round);
         playerToRound.put(creator.getUniqueId(), round);
 
-        // Teleport creator to the private waiting lobby
         Location privateLobby = translateLocation(templateArena.getLobby(), privateWorld);
         creator.teleport(privateLobby);
         creator.setGameMode(GameMode.SURVIVAL);
@@ -169,21 +166,17 @@ public class PrivateRoundManager {
     }
 
     private void clearPrivateRoundAbilities(Player player) {
-        // Remove fly mode
         player.setAllowFlight(false);
         player.setFlying(false);
 
-        // Remove god mode
         if (plugin.getPrivateCommand() != null) {
             plugin.getPrivateCommand().removeGodMode(player.getUniqueId());
         }
 
-        // Reset gamemode
         player.setGameMode(GameMode.SURVIVAL);
     }
 
     public void deletePrivateRound(PrivateRound round) {
-        // Clear abilities and teleport all players in the round
         for (UUID playerId : round.getPlayers()) {
             Player player = plugin.getServer().getPlayer(playerId);
             if (player != null && player.isOnline()) {
@@ -193,7 +186,6 @@ public class PrivateRoundManager {
             playerToRound.remove(playerId);
         }
 
-        // Also handle invited players who haven't joined yet
         for (UUID playerId : round.getInvitedPlayers()) {
             playerToRound.remove(playerId);
         }
@@ -369,7 +361,6 @@ public class PrivateRoundManager {
         round.removePlayer(player.getUniqueId());
         playerToRound.remove(player.getUniqueId());
 
-        // Clear private round abilities
         clearPrivateRoundAbilities(player);
 
         plugin.getLobbyManager().sendToLobby(player);

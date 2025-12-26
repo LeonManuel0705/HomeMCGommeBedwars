@@ -71,11 +71,9 @@ public class BlockBreakListener implements Listener {
 
                 team.destroyBed(player);
 
-                // Remove both parts of the bed without dropping items
                 Block bedBlock = event.getBlock();
                 removeBedBlocks(bedBlock);
 
-                // Play custom bed destroy sound from cosmetics
                 plugin.getCosmeticsManager().playBedDestroySound(player, bedBlock.getLocation());
 
                 plugin.getStatsManager().addBedDestroy(player.getUniqueId());
@@ -86,10 +84,8 @@ public class BlockBreakListener implements Listener {
     }
 
     private void removeBedBlocks(Block block) {
-        // Set the block to air first
         block.setType(Material.AIR, false);
 
-        // Check all adjacent blocks for the other half of the bed
         BlockFace[] faces = {BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST, BlockFace.UP, BlockFace.DOWN};
         for (BlockFace face : faces) {
             Block relative = block.getRelative(face);

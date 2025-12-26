@@ -31,7 +31,6 @@ public class EntityDamageListener implements Listener {
             return;
         }
 
-        // Check for god mode in private rounds
         if (plugin.getPrivateCommand() != null && plugin.getPrivateCommand().isInGodMode(uuid)) {
             event.setCancelled(true);
             return;
@@ -82,6 +81,8 @@ public class EntityDamageListener implements Listener {
         return null;
     }
 
+    private final java.util.Map<java.util.UUID, Integer> hungerCooldown = new java.util.concurrent.ConcurrentHashMap<>();
+
     @EventHandler
     public void onFoodChange(FoodLevelChangeEvent event) {
         if (!(event.getEntity() instanceof Player)) return;
@@ -92,6 +93,17 @@ public class EntityDamageListener implements Listener {
         if (arena == null) {
             if (!plugin.getBuildManager().isInBuildMode(player.getUniqueId())) {
                 event.setCancelled(true);
+            }
+            return;
+        }
+
+        if (event.getFoodLevel() < player.getFoodLevel()) {
+            int counter = hungerCooldown.getOrDefault(player.getUniqueId(), 0);
+            if (counter < 1) {
+                hungerCooldown.put(player.getUniqueId(), counter + 1);
+                event.setCancelled(true);
+            } else {
+                hungerCooldown.put(player.getUniqueId(), 0);
             }
         }
     }

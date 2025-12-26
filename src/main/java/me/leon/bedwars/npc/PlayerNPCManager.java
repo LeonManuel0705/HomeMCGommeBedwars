@@ -13,10 +13,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Manages player-like NPCs with skin support.
- * This is a Citizens2-like system without any external dependencies.
- */
 public class PlayerNPCManager {
 
     private final BedWars plugin;
@@ -32,13 +28,9 @@ public class PlayerNPCManager {
         startLookAtTask();
     }
 
-    /**
-     * Creates and spawns a new player NPC.
-     */
     public PlayerNPC createNPC(Location location, String displayName, String skinPlayerName, String npcType) {
         UUID npcId = UUID.randomUUID();
 
-        // Fetch skin asynchronously
         SkinFetcher.fetchSkinAsync(skinPlayerName != null ? skinPlayerName : "Steve", skin -> {
             String skinValue = skin != null ? skin[0] : null;
             String skinSignature = skin != null ? skin[1] : null;
@@ -56,12 +48,9 @@ public class PlayerNPCManager {
             plugin.getLogger().info("Created player NPC '" + displayName + "' with skin from " + skinPlayerName);
         });
 
-        return null; // NPC is created asynchronously
+        return null;
     }
 
-    /**
-     * Creates an NPC with a specific skin value/signature (no fetch needed).
-     */
     public PlayerNPC createNPCWithSkin(Location location, String displayName, String skinValue, String skinSignature, String npcType) {
         UUID npcId = UUID.randomUUID();
 
@@ -78,9 +67,6 @@ public class PlayerNPCManager {
         return npc;
     }
 
-    /**
-     * Removes an NPC by its ID.
-     */
     public void removeNPC(UUID npcId) {
         PlayerNPC npc = npcs.remove(npcId);
         if (npc != null) {
@@ -90,9 +76,6 @@ public class PlayerNPCManager {
         }
     }
 
-    /**
-     * Removes the nearest NPC to a location.
-     */
     public void removeNearestNPC(Location location, double radius) {
         UUID nearestId = null;
         double nearestDist = radius;
@@ -112,17 +95,11 @@ public class PlayerNPCManager {
         }
     }
 
-    /**
-     * Gets an NPC by its entity ID (for click detection).
-     */
     public PlayerNPC getNPCByEntityId(int entityId) {
         UUID npcId = entityIdToNpcId.get(entityId);
         return npcId != null ? npcs.get(npcId) : null;
     }
 
-    /**
-     * Handles when a player clicks on an NPC.
-     */
     public void handleNPCClick(Player player, int entityId) {
         PlayerNPC npc = getNPCByEntityId(entityId);
         if (npc == null) return;
@@ -142,27 +119,18 @@ public class PlayerNPCManager {
         }
     }
 
-    /**
-     * Shows all NPCs to a player (called on join).
-     */
     public void showAllNPCs(Player player) {
         for (PlayerNPC npc : npcs.values()) {
             npc.showTo(player);
         }
     }
 
-    /**
-     * Hides all NPCs from a player (called on quit).
-     */
     public void hideAllNPCs(Player player) {
         for (PlayerNPC npc : npcs.values()) {
             npc.hideFrom(player);
         }
     }
 
-    /**
-     * Respawns all NPCs (useful for reloading).
-     */
     public void respawnAllNPCs() {
         for (PlayerNPC npc : npcs.values()) {
             npc.destroy();
@@ -173,9 +141,6 @@ public class PlayerNPCManager {
         }
     }
 
-    /**
-     * Starts a task that makes NPCs look at nearby players.
-     */
     private void startLookAtTask() {
         lookAtTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (PlayerNPC npc : npcs.values()) {
@@ -204,9 +169,6 @@ public class PlayerNPCManager {
         return nearest;
     }
 
-    /**
-     * Loads NPCs from config file.
-     */
     private void loadNPCs() {
         if (!npcFile.exists()) return;
 
@@ -239,7 +201,6 @@ public class PlayerNPCManager {
             }
         }
 
-        // Spawn NPCs after a delay to ensure world is loaded
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (PlayerNPC npc : npcs.values()) {
                 npc.spawn();
@@ -251,9 +212,6 @@ public class PlayerNPCManager {
         }, 40L);
     }
 
-    /**
-     * Saves all NPCs to config file.
-     */
     private void saveNPCs() {
         YamlConfiguration config = new YamlConfiguration();
 
@@ -281,9 +239,6 @@ public class PlayerNPCManager {
         }
     }
 
-    /**
-     * Shuts down the NPC manager.
-     */
     public void shutdown() {
         if (lookAtTask != null) {
             lookAtTask.cancel();

@@ -36,7 +36,6 @@ public class CosmeticsGUI implements Listener {
         PlayerCosmetics cosmetics = plugin.getCosmeticsManager().getCosmetics(player.getUniqueId());
         int coins = plugin.getCore().getCoinManager().getCoins(player.getUniqueId());
 
-        // Coins display - Slot 4
         ItemStack coinItem = new ItemStack(Material.GOLD_INGOT);
         ItemMeta coinMeta = coinItem.getItemMeta();
         coinMeta.setDisplayName("§6§lDeine Coins");
@@ -48,7 +47,6 @@ public class CosmeticsGUI implements Listener {
         coinItem.setItemMeta(coinMeta);
         inv.setItem(4, coinItem);
 
-        // Kill Messages - Slot 10
         ItemStack killItem = new ItemStack(Material.DIAMOND_SWORD);
         ItemMeta killMeta = killItem.getItemMeta();
         killMeta.setDisplayName("§c§lKill-Nachrichten");
@@ -62,7 +60,6 @@ public class CosmeticsGUI implements Listener {
         killItem.setItemMeta(killMeta);
         inv.setItem(10, killItem);
 
-        // Death Messages - Slot 12
         ItemStack deathItem = new ItemStack(Material.SKULL_ITEM);
         ItemMeta deathMeta = deathItem.getItemMeta();
         deathMeta.setDisplayName("§6§lTodes-Nachrichten");
@@ -76,7 +73,6 @@ public class CosmeticsGUI implements Listener {
         deathItem.setItemMeta(deathMeta);
         inv.setItem(12, deathItem);
 
-        // Bed Destroy Sounds - Slot 14
         ItemStack soundItem = new ItemStack(Material.NOTE_BLOCK);
         ItemMeta soundMeta = soundItem.getItemMeta();
         soundMeta.setDisplayName("§b§lBett-Sounds");
@@ -90,7 +86,6 @@ public class CosmeticsGUI implements Listener {
         soundItem.setItemMeta(soundMeta);
         inv.setItem(14, soundItem);
 
-        // Bed Destroy Messages - Slot 16
         ItemStack bedMsgItem = new ItemStack(Material.BED);
         ItemMeta bedMsgMeta = bedMsgItem.getItemMeta();
         bedMsgMeta.setDisplayName("§e§lBett-Nachrichten");
@@ -104,7 +99,6 @@ public class CosmeticsGUI implements Listener {
         bedMsgItem.setItemMeta(bedMsgMeta);
         inv.setItem(16, bedMsgItem);
 
-        // Victory Dance - Slot 22
         ItemStack danceItem = new ItemStack(Material.FIREWORK);
         ItemMeta danceMeta = danceItem.getItemMeta();
         danceMeta.setDisplayName("§d§lSieges-Tänze");
@@ -118,7 +112,6 @@ public class CosmeticsGUI implements Listener {
         danceItem.setItemMeta(danceMeta);
         inv.setItem(22, danceItem);
 
-        // Fill empty slots with glass
         ItemStack filler = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 15);
         ItemMeta fillerMeta = filler.getItemMeta();
         fillerMeta.setDisplayName(" ");
@@ -171,7 +164,6 @@ public class CosmeticsGUI implements Listener {
             if (slot == 26) break;
         }
 
-        // Back button
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta backMeta = back.getItemMeta();
         backMeta.setDisplayName("§c§lZurück");
@@ -221,7 +213,6 @@ public class CosmeticsGUI implements Listener {
             if (slot == 26) break;
         }
 
-        // Back button
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta backMeta = back.getItemMeta();
         backMeta.setDisplayName("§c§lZurück");
@@ -271,7 +262,6 @@ public class CosmeticsGUI implements Listener {
             if (slot == 26) break;
         }
 
-        // Back button
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta backMeta = back.getItemMeta();
         backMeta.setDisplayName("§c§lZurück");
@@ -321,7 +311,6 @@ public class CosmeticsGUI implements Listener {
             if (slot == 26) break;
         }
 
-        // Back button
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta backMeta = back.getItemMeta();
         backMeta.setDisplayName("§c§lZurück");
@@ -377,7 +366,6 @@ public class CosmeticsGUI implements Listener {
             if (slot == 16) slot = 20;
         }
 
-        // Back button
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta backMeta = back.getItemMeta();
         backMeta.setDisplayName("§c§lZurück");

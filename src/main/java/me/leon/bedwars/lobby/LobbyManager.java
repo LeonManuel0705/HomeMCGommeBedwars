@@ -68,7 +68,6 @@ public class LobbyManager {
     }
 
     public void giveLobbyItems(Player player) {
-        // Slot 0: Compass - Opens game mode selector (future: opens GUI for game mode selection)
         ItemStack compass = new ItemStack(Material.COMPASS);
         ItemMeta compassMeta = compass.getItemMeta();
         compassMeta.setDisplayName("§a§lSpielmodus");
@@ -84,7 +83,6 @@ public class LobbyManager {
         compass.setItemMeta(compassMeta);
         player.getInventory().setItem(0, compass);
 
-        // Slot 2: Cosmetics
         ItemStack cosmetics = new ItemStack(Material.CHEST);
         ItemMeta cosmeticsMeta = cosmetics.getItemMeta();
         cosmeticsMeta.setDisplayName("§d§lKosmetik");
@@ -101,7 +99,6 @@ public class LobbyManager {
         cosmetics.setItemMeta(cosmeticsMeta);
         player.getInventory().setItem(2, cosmetics);
 
-        // Slot 4: Stats - Shows player statistics
         ItemStack stats = new ItemStack(Material.PAPER);
         ItemMeta statsMeta = stats.getItemMeta();
         statsMeta.setDisplayName("§6§lStatistiken");
@@ -122,7 +119,6 @@ public class LobbyManager {
         stats.setItemMeta(statsMeta);
         player.getInventory().setItem(4, stats);
 
-        // Slot 6: Player visibility toggle
         ItemStack hidePlayer = new ItemStack(Material.BLAZE_ROD);
         ItemMeta hideMeta = hidePlayer.getItemMeta();
         hideMeta.setDisplayName("§aSpieler sichtbar");
@@ -134,7 +130,6 @@ public class LobbyManager {
         hidePlayer.setItemMeta(hideMeta);
         player.getInventory().setItem(6, hidePlayer);
 
-        // Slot 7: Private Rounds (if player has permission)
         if (player.hasPermission("bedwars.private")) {
             ItemStack privateItem = new ItemStack(Material.NETHER_STAR);
             ItemMeta privateMeta = privateItem.getItemMeta();
@@ -152,7 +147,6 @@ public class LobbyManager {
             player.getInventory().setItem(7, privateItem);
         }
 
-        // Slot 8: Return to main lobby (BungeeCord)
         ItemStack leave = new ItemStack(Material.SLIME_BALL);
         ItemMeta leaveMeta = leave.getItemMeta();
         leaveMeta.setDisplayName("§c§lZur Lobby");
@@ -175,19 +169,16 @@ public class LobbyManager {
         obj.getScore("§8" + getCurrentDate()).setScore(line--);
         obj.getScore("§f").setScore(line--);
 
-        // Player greeting with rank color
         String rankColor = plugin.getCore().getRankManager().getRankColor(player);
         obj.getScore("§7Hallo, " + rankColor + player.getName()).setScore(line--);
         obj.getScore("§f ").setScore(line--);
 
-        // Game modes with player counts
         obj.getScore("§e§lSpielmodi:").setScore(line--);
         obj.getScore(" §8▸ §eSolo: §7" + getPlayingCount(GameMode.SOLO)).setScore(line--);
         obj.getScore(" §8▸ §aDuo: §7" + getPlayingCount(GameMode.DUO)).setScore(line--);
         obj.getScore(" §8▸ §bTeam: §7" + getPlayingCount(GameMode.TEAM)).setScore(line--);
         obj.getScore("§f  ").setScore(line--);
 
-        // Player stats
         me.leon.bedwars.managers.StatsManager.PlayerStats stats =
                 plugin.getStatsManager().getStats(player.getUniqueId());
 

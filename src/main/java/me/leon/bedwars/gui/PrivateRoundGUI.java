@@ -232,7 +232,7 @@ public class PrivateRoundGUI implements Listener {
             String mapName = displayName.substring(2);
 
             for (Arena arena : plugin.getArenaManager().getArenas()) {
-                if (arena.getDisplayName().equals(mapName)) {
+                if (arena.getDisplayName().equals(mapName) || arena.getName().equals(mapName)) {
                     player.closeInventory();
                     plugin.getPrivateRoundManager().createPrivateRound(player, arena.getName());
                     return;
@@ -255,45 +255,44 @@ public class PrivateRoundGUI implements Listener {
 
         boolean changed = false;
 
-        // Use slot position to differentiate items
         switch (slot) {
-            case 10: // Gold enable/disable toggle
+            case 10:
                 settings.setGoldEnabled(!settings.isGoldEnabled());
                 changed = true;
                 break;
-            case 12: // Iron enable/disable toggle
+            case 12:
                 settings.setIronEnabled(!settings.isIronEnabled());
                 changed = true;
                 break;
-            case 14: // Max health
+            case 14:
                 double newHealth = settings.getMaxHealth() + (leftClick ? 2 : -2);
                 if (newHealth >= 2 && newHealth <= 100) {
                     settings.setMaxHealth(newHealth);
                     changed = true;
                 }
                 break;
-            case 16: // Team size
+            case 16:
                 int newSize = settings.getPlayersPerTeam() + (leftClick ? 1 : -1);
                 if (newSize >= 1 && newSize <= 4) {
                     settings.setPlayersPerTeam(newSize);
                     changed = true;
                 }
                 break;
-            case 28: // Bronze spawn rate
+            case 28:
                 int bronzeRate = settings.getBronzeSpawnRate() + (leftClick ? 1 : -1);
                 if (bronzeRate >= 1 && bronzeRate <= 60) {
                     settings.setBronzeSpawnRate(bronzeRate);
                     changed = true;
                 }
                 break;
-            case 30: // Iron spawn rate
+            case 30:
                 int ironRate = settings.getIronSpawnRate() + (leftClick ? 1 : -1);
                 if (ironRate >= 1 && ironRate <= 120) {
                     settings.setIronSpawnRate(ironRate);
                     changed = true;
                 }
                 break;
-            case 32: // Gold spawn rate
+            case 32:
                 int goldRate = settings.getGoldSpawnRate() + (leftClick ? 1 : -1);
                 if (goldRate >= 1 && goldRate <= 300) {
                     settings.setGoldSpawnRate(goldRate);

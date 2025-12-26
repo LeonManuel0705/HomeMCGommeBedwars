@@ -70,34 +70,28 @@ public class LobbyListener implements Listener {
             return;
         }
 
-        // Compass - Game mode selector GUI
         if (item.getType() == Material.COMPASS) {
             event.setCancelled(true);
             openGameModeSelector(player);
         }
-        // Paper - Stats
         else if (item.getType() == Material.PAPER) {
             event.setCancelled(true);
             player.performCommand("stats");
         }
-        // Blaze Rod - Player visibility toggle
         else if (item.getType() == Material.BLAZE_ROD || item.getType() == Material.BLAZE_POWDER) {
             event.setCancelled(true);
             togglePlayerVisibility(player);
         }
-        // Chest - Cosmetics GUI
         else if (item.getType() == Material.CHEST) {
             event.setCancelled(true);
             plugin.getCosmeticsGUI().openMainMenu(player);
         }
-        // Nether Star - Private round GUI
         else if (item.getType() == Material.NETHER_STAR) {
             event.setCancelled(true);
             if (player.hasPermission("bedwars.private")) {
                 plugin.getPrivateRoundGUI().openMainMenu(player);
             }
         }
-        // Slime Ball - Return to lobby (BungeeCord)
         else if (item.getType() == Material.SLIME_BALL) {
             event.setCancelled(true);
             try {
@@ -115,8 +109,7 @@ public class LobbyListener implements Listener {
     private void openGameModeSelector(Player player) {
         org.bukkit.inventory.Inventory inv = org.bukkit.Bukkit.createInventory(null, 27, "§8» §6§lSpielmodus wählen");
 
-        // Solo - Yellow bed
-        ItemStack solo = new ItemStack(Material.BED, 1, (short) 4); // Yellow bed
+        ItemStack solo = new ItemStack(Material.BED, 1, (short) 4);
         org.bukkit.inventory.meta.ItemMeta soloMeta = solo.getItemMeta();
         soloMeta.setDisplayName("§e§lSolo §7(1x8)");
         int soloPlayers = getPlayingCount(LobbyManager.GameMode.SOLO);
@@ -130,8 +123,7 @@ public class LobbyListener implements Listener {
         solo.setItemMeta(soloMeta);
         inv.setItem(11, solo);
 
-        // Duo - Lime bed
-        ItemStack duo = new ItemStack(Material.BED, 1, (short) 5); // Lime bed
+        ItemStack duo = new ItemStack(Material.BED, 1, (short) 5);
         org.bukkit.inventory.meta.ItemMeta duoMeta = duo.getItemMeta();
         duoMeta.setDisplayName("§a§lDuo §7(2x4)");
         int duoPlayers = getPlayingCount(LobbyManager.GameMode.DUO);
@@ -145,8 +137,7 @@ public class LobbyListener implements Listener {
         duo.setItemMeta(duoMeta);
         inv.setItem(13, duo);
 
-        // Team 4x2 - Cyan bed
-        ItemStack team = new ItemStack(Material.BED, 1, (short) 9); // Cyan bed
+        ItemStack team = new ItemStack(Material.BED, 1, (short) 9);
         org.bukkit.inventory.meta.ItemMeta teamMeta = team.getItemMeta();
         teamMeta.setDisplayName("§b§lTeam §7(4x2)");
         int teamPlayers = getPlayingCount(LobbyManager.GameMode.TEAM);
@@ -160,8 +151,7 @@ public class LobbyListener implements Listener {
         team.setItemMeta(teamMeta);
         inv.setItem(15, team);
 
-        // Glass panes for decoration
-        ItemStack glass = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 7); // Gray glass
+        ItemStack glass = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 7);
         org.bukkit.inventory.meta.ItemMeta glassMeta = glass.getItemMeta();
         glassMeta.setDisplayName(" ");
         glass.setItemMeta(glassMeta);

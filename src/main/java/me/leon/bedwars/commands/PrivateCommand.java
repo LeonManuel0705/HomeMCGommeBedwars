@@ -347,7 +347,6 @@ public class PrivateCommand implements CommandExecutor {
         if (!round.getCreator().equals(player.getUniqueId())) {
             return false;
         }
-        // Check if player is actually in the private world
         if (!player.getWorld().equals(round.getPrivateWorld())) {
             return false;
         }
@@ -459,12 +458,10 @@ public class PrivateCommand implements CommandExecutor {
             return;
         }
 
-        // Remove from private round and send to BedWars lobby
         round.removePlayer(target.getUniqueId());
         plugin.getPrivateRoundManager().removePlayerFromRound(target.getUniqueId());
         plugin.getLobbyManager().sendToLobby(target);
 
-        // Remove god mode if they had it
         godModePlayers.remove(target.getUniqueId());
 
         target.sendMessage(BedWars.PREFIX + "§cDu wurdest aus der privaten Runde gekickt!");

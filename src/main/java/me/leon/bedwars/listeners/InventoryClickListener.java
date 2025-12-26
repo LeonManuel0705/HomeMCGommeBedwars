@@ -28,7 +28,6 @@ public class InventoryClickListener implements Listener {
         Player player = (Player) event.getWhoClicked();
         String title = event.getInventory().getTitle();
 
-        // Handle game mode selector in lobby (not in arena)
         if (title.equals("§8» §6§lSpielmodus wählen")) {
             event.setCancelled(true);
             if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.STAINED_GLASS_PANE) {
@@ -64,13 +63,7 @@ public class InventoryClickListener implements Listener {
 
             if (event.getCurrentItem() == null) return;
 
-            if (event.getCurrentItem().getType() == Material.GOLD_INGOT) {
-                arena.voteGold(player, true);
-                player.closeInventory();
-                return;
-            } else if (event.getCurrentItem().getType() == Material.BARRIER) {
-                arena.voteGold(player, false);
-                player.closeInventory();
+            if (event.getCurrentItem().getType() == Material.STAINED_GLASS_PANE) {
                 return;
             }
 
@@ -89,6 +82,24 @@ public class InventoryClickListener implements Listener {
                 if (team != null) {
                     plugin.getNametagManager().setGameNametag(player, team);
                 }
+            }
+        }
+
+        else if (title.equals("§8Gold Abstimmung")) {
+            event.setCancelled(true);
+
+            if (event.getCurrentItem() == null) return;
+
+            if (event.getCurrentItem().getType() == Material.STAINED_GLASS_PANE) {
+                return;
+            }
+
+            if (event.getCurrentItem().getType() == Material.GOLD_INGOT) {
+                arena.voteGold(player, true);
+                player.closeInventory();
+            } else if (event.getCurrentItem().getType() == Material.BARRIER) {
+                arena.voteGold(player, false);
+                player.closeInventory();
             }
         }
 

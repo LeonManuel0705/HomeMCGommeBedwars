@@ -32,22 +32,28 @@ public class CosmeticsManager {
                                 "bed_destroy_sound VARCHAR(50) DEFAULT 'DEFAULT', " +
                                 "bed_destroy_message VARCHAR(50) DEFAULT 'DEFAULT', " +
                                 "victory_dance VARCHAR(50) DEFAULT 'DEFAULT', " +
+                                "arrow_trail VARCHAR(50) DEFAULT 'DEFAULT', " +
                                 "owned_cosmetics TEXT DEFAULT ''" +
                                 ")"
                 );
                 ps.executeUpdate();
                 ps.close();
 
-                // Add bed_destroy_message column if it doesn't exist (for existing databases)
                 try {
                     PreparedStatement alter = plugin.getCore().getMySQL().getConnection().prepareStatement(
                             "ALTER TABLE bedwars_cosmetics ADD COLUMN bed_destroy_message VARCHAR(50) DEFAULT 'DEFAULT'"
                     );
                     alter.executeUpdate();
                     alter.close();
-                } catch (Exception ignored) {
-                    // Column already exists
-                }
+                } catch (Exception ignored) {}
+
+                try {
+                    PreparedStatement alter = plugin.getCore().getMySQL().getConnection().prepareStatement(
+                            "ALTER TABLE bedwars_cosmetics ADD COLUMN arrow_trail VARCHAR(50) DEFAULT 'DEFAULT'"
+                    );
+                    alter.executeUpdate();
+                    alter.close();
+                } catch (Exception ignored) {}
             } catch (Exception e) {
                 plugin.getLogger().severe("Failed to create cosmetics table: " + e.getMessage());
             }
@@ -73,12 +79,21 @@ public class CosmeticsManager {
                         } catch (IllegalArgumentException ignored) {}
                     }
 
+                    ArrowTrail arrowTrail = ArrowTrail.DEFAULT;
+                    try {
+                        String arrowStr = rs.getString("arrow_trail");
+                        if (arrowStr != null) {
+                            arrowTrail = ArrowTrail.valueOf(arrowStr);
+                        }
+                    } catch (Exception ignored) {}
+
                     cosmetics = new PlayerCosmetics(
                             KillMessage.valueOf(rs.getString("kill_message")),
                             DeathMessage.valueOf(rs.getString("death_message")),
                             BedDestroySound.valueOf(rs.getString("bed_destroy_sound")),
                             bedMsg,
                             VictoryDance.valueOf(rs.getString("victory_dance")),
+                            arrowTrail,
                             rs.getString("owned_cosmetics")
                     );
                 } else {
@@ -119,15 +134,16 @@ public class CosmeticsManager {
             try {
                 PreparedStatement ps = plugin.getCore().getMySQL().getConnection().prepareStatement(
                         "UPDATE bedwars_cosmetics SET kill_message = ?, death_message = ?, " +
-                                "bed_destroy_sound = ?, bed_destroy_message = ?, victory_dance = ?, owned_cosmetics = ? WHERE uuid = ?"
+                                "bed_destroy_sound = ?, bed_destroy_message = ?, victory_dance = ?, arrow_trail = ?, owned_cosmetics = ? WHERE uuid = ?"
                 );
                 ps.setString(1, cosmetics.getKillMessage().name());
                 ps.setString(2, cosmetics.getDeathMessage().name());
                 ps.setString(3, cosmetics.getBedDestroySound().name());
                 ps.setString(4, cosmetics.getBedDestroyMessage().name());
                 ps.setString(5, cosmetics.getVictoryDance().name());
-                ps.setString(6, cosmetics.getOwnedCosmeticsString());
-                ps.setString(7, uuid.toString());
+                ps.setString(6, cosmetics.getArrowTrail().name());
+                ps.setString(7, cosmetics.getOwnedCosmeticsString());
+                ps.setString(8, uuid.toString());
                 ps.executeUpdate();
                 ps.close();
             } catch (Exception e) {
@@ -194,7 +210,6 @@ public class CosmeticsManager {
         return true;
     }
 
-    // Enums for cosmetics
     public enum KillMessage {
         DEFAULT("wurde von", "getötet"),
         DESTROYED("wurde von", "zerstört"),
@@ -381,13 +396,55 @@ public class CosmeticsManager {
         }
     }
 
-    // Player cosmetics data class
+    public enum ArrowTrail {
+        DEFAULT(null),
+        FLAME(org.bukkit.Effect.MOBSPAWNER_FLAMES),
+        HEART(org.bukkit.Effect.HEART),
+        SMOKE(org.bukkit.Effect.SMOKE),
+        MAGIC(org.bukkit.Effect.WITCH_MAGIC),
+        CRIT(org.bukkit.Effect.CRIT),
+        WATER(org.bukkit.Effect.WATERDRIP),
+        LAVA(org.bukkit.Effect.LAVADRIP),
+        PORTAL(org.bukkit.Effect.PORTAL);
+
+        private final org.bukkit.Effect effect;
+
+        ArrowTrail(org.bukkit.Effect effect) {
+            this.effect = effect;
+        }
+
+        public org.bukkit.Effect getEffect() {
+            return effect;
+        }
+
+        public String getDisplayName() {
+            switch (this) {
+                case DEFAULT: return "§fKein Trail";
+                case FLAME: return "§6Flammen";
+                case HEART: return "§cHerzen";
+                case SMOKE: return "§8Rauch";
+                case MAGIC: return "§dMagie";
+                case CRIT: return "§eKritisch";
+                case WATER: return "§bWasser";
+                case LAVA: return "§4Lava";
+                case PORTAL: return "§5Portal";
+                default: return "§7Unbekannt";
+            }
+        }
+
+        public int getPrice() {
+            if (this == DEFAULT) return 0;
+            return 750;
+        }
+    }
+
     public static class PlayerCosmetics {
         private KillMessage killMessage;
         private DeathMessage deathMessage;
         private BedDestroySound bedDestroySound;
         private BedDestroyMessage bedDestroyMessage;
         private VictoryDance victoryDance;
+        private ArrowTrail arrowTrail;
         private final java.util.Set<String> ownedCosmetics;
 
         public PlayerCosmetics() {
@@ -396,35 +453,37 @@ public class CosmeticsManager {
             this.bedDestroySound = BedDestroySound.DEFAULT;
             this.bedDestroyMessage = BedDestroyMessage.DEFAULT;
             this.victoryDance = VictoryDance.DEFAULT;
+            this.arrowTrail = ArrowTrail.DEFAULT;
             this.ownedCosmetics = ConcurrentHashMap.newKeySet();
-            // Everyone owns the default cosmetics
             ownedCosmetics.add("KILL_DEFAULT");
             ownedCosmetics.add("DEATH_DEFAULT");
             ownedCosmetics.add("SOUND_DEFAULT");
             ownedCosmetics.add("BEDMSG_DEFAULT");
             ownedCosmetics.add("DANCE_DEFAULT");
+            ownedCosmetics.add("ARROW_DEFAULT");
         }
 
         public PlayerCosmetics(KillMessage killMessage, DeathMessage deathMessage,
                                BedDestroySound bedDestroySound, BedDestroyMessage bedDestroyMessage,
-                               VictoryDance victoryDance, String ownedString) {
+                               VictoryDance victoryDance, ArrowTrail arrowTrail, String ownedString) {
             this.killMessage = killMessage;
             this.deathMessage = deathMessage;
             this.bedDestroySound = bedDestroySound;
             this.bedDestroyMessage = bedDestroyMessage;
             this.victoryDance = victoryDance;
+            this.arrowTrail = arrowTrail;
             this.ownedCosmetics = ConcurrentHashMap.newKeySet();
             if (ownedString != null && !ownedString.isEmpty()) {
                 for (String s : ownedString.split(",")) {
                     ownedCosmetics.add(s.trim());
                 }
             }
-            // Ensure defaults are owned
             ownedCosmetics.add("KILL_DEFAULT");
             ownedCosmetics.add("DEATH_DEFAULT");
             ownedCosmetics.add("SOUND_DEFAULT");
             ownedCosmetics.add("BEDMSG_DEFAULT");
             ownedCosmetics.add("DANCE_DEFAULT");
+            ownedCosmetics.add("ARROW_DEFAULT");
         }
 
         public KillMessage getKillMessage() { return killMessage; }
@@ -441,6 +500,9 @@ public class CosmeticsManager {
 
         public VictoryDance getVictoryDance() { return victoryDance; }
         public void setVictoryDance(VictoryDance victoryDance) { this.victoryDance = victoryDance; }
+
+        public ArrowTrail getArrowTrail() { return arrowTrail; }
+        public void setArrowTrail(ArrowTrail arrowTrail) { this.arrowTrail = arrowTrail; }
 
         public boolean ownsCosmetic(String cosmeticId) {
             return ownedCosmetics.contains(cosmeticId);

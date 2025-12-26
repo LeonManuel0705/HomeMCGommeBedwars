@@ -2,15 +2,11 @@ package me.leon.bedwars.managers;
 
 import me.leon.bedwars.BedWars;
 import me.leon.bedwars.game.Arena;
-import me.leon.bedwars.game.Arena.GeneratorData;
-import me.leon.bedwars.game.Arena.GeneratorType;
+import me.leon.bedwars.npc.ShopNPC;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Villager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
@@ -36,42 +32,137 @@ public class TeamManager {
     }
 
     public void openTeamSelector(Player player, Arena arena) {
-        org.bukkit.inventory.Inventory inv = plugin.getServer().createInventory(null, 45, "§8Team wählen");
+        int teamCount = arena.getTeams().size();
+        int rows = teamCount <= 4 ? 3 : 5;
+        org.bukkit.inventory.Inventory inv = plugin.getServer().createInventory(null, rows * 9, "§8Team wählen");
 
-        int slot = 10;
-        for (BedWarsTeam team : arena.getTeams().values()) {
+        ItemStack glass = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 15);
+        ItemMeta glassMeta = glass.getItemMeta();
+        glassMeta.setDisplayName(" ");
+        glass.setItemMeta(glassMeta);
+
+        for (int i = 0; i < inv.getSize(); i++) {
+            inv.setItem(i, glass);
+        }
+
+        List<BedWarsTeam> teamList = new ArrayList<>(arena.getTeams().values());
+        int[] slots;
+
+        if (teamCount <= 4) {
+            switch (teamCount) {
+                case 2:
+                    slots = new int[]{11, 15};
+                    break;
+                case 3:
+                    slots = new int[]{10, 13, 16};
+                    break;
+                case 4:
+                default:
+                    slots = new int[]{10, 12, 14, 16};
+                    break;
+            }
+        } else {
+            switch (teamCount) {
+                case 5:
+                    slots = new int[]{11, 15, 19, 22, 25};
+                    break;
+                case 6:
+                    slots = new int[]{10, 13, 16, 19, 22, 25};
+                    break;
+                case 7:
+                    slots = new int[]{10, 13, 16, 19, 21, 23, 25};
+                    break;
+                case 8:
+                default:
+                    slots = new int[]{10, 12, 14, 16, 28, 30, 32, 34};
+                    break;
+            }
+        }
+
+        for (int i = 0; i < teamList.size() && i < slots.length; i++) {
+            BedWarsTeam team = teamList.get(i);
             ItemStack item = new ItemStack(Material.WOOL, 1, team.getColor().getData());
             ItemMeta meta = item.getItemMeta();
             meta.setDisplayName(team.getColoredName());
 
             List<String> lore = new ArrayList<>();
+            lore.add("");
             lore.add("§7Spieler: §e" + team.getPlayers().size() + "§8/§e" + team.getMaxPlayers());
             lore.add("");
+
+            for (UUID uuid : team.getPlayers()) {
+                Player p = plugin.getServer().getPlayer(uuid);
+                if (p != null) {
+                    lore.add("§8- §7" + plugin.getDisplayName(p));
+                }
+            }
+
+            if (!team.getPlayers().isEmpty()) {
+                lore.add("");
+            }
+
             if (team.getPlayers().size() >= team.getMaxPlayers()) {
                 lore.add("§cTeam ist voll!");
+            } else if (team.getPlayers().contains(player.getUniqueId())) {
+                lore.add("§eDu bist in diesem Team!");
             } else {
                 lore.add("§aKlicke zum Beitreten!");
             }
             meta.setLore(lore);
             item.setItemMeta(meta);
 
-            inv.setItem(slot++, item);
-            if (slot == 14) slot = 16;
+            inv.setItem(slots[i], item);
+        }
+
+        player.openInventory(inv);
+    }
+
+    public ItemStack getGoldVoteItem() {
+        ItemStack item = new ItemStack(Material.GOLD_INGOT);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName("§6Gold Abstimmung §7(Rechtsklick)");
+        List<String> lore = new ArrayList<>();
+        lore.add("§7Stimme für Gold ab!");
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public void openGoldVoteGUI(Player player, Arena arena) {
+        org.bukkit.inventory.Inventory inv = plugin.getServer().createInventory(null, 27, "§8Gold Abstimmung");
+
+        ItemStack glass = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 15);
+        ItemMeta glassMeta = glass.getItemMeta();
+        glassMeta.setDisplayName(" ");
+        glass.setItemMeta(glassMeta);
+
+        for (int i = 0; i < inv.getSize(); i++) {
+            inv.setItem(i, glass);
         }
 
         ItemStack goldOn = new ItemStack(Material.GOLD_INGOT);
         ItemMeta goldOnMeta = goldOn.getItemMeta();
-        goldOnMeta.setDisplayName("§aGold aktivieren");
-        goldOnMeta.setLore(Arrays.asList("§7Klicke um für Gold zu stimmen"));
+        goldOnMeta.setDisplayName("§a§lGold aktivieren");
+        List<String> onLore = new ArrayList<>();
+        onLore.add("");
+        onLore.add("§7Stimmen dafür: §a" + arena.getGoldVotesYes());
+        onLore.add("");
+        onLore.add("§eKlicke um dafür zu stimmen!");
+        goldOnMeta.setLore(onLore);
         goldOn.setItemMeta(goldOnMeta);
-        inv.setItem(37, goldOn);
+        inv.setItem(11, goldOn);
 
         ItemStack goldOff = new ItemStack(Material.BARRIER);
         ItemMeta goldOffMeta = goldOff.getItemMeta();
-        goldOffMeta.setDisplayName("§cGold deaktivieren");
-        goldOffMeta.setLore(Arrays.asList("§7Klicke um gegen Gold zu stimmen"));
+        goldOffMeta.setDisplayName("§c§lGold deaktivieren");
+        List<String> offLore = new ArrayList<>();
+        offLore.add("");
+        offLore.add("§7Stimmen dagegen: §c" + arena.getGoldVotesNo());
+        offLore.add("");
+        offLore.add("§eKlicke um dagegen zu stimmen!");
+        goldOffMeta.setLore(offLore);
         goldOff.setItemMeta(goldOffMeta);
-        inv.setItem(39, goldOff);
+        inv.setItem(15, goldOff);
 
         player.openInventory(inv);
     }
@@ -110,7 +201,7 @@ public class TeamManager {
         private Location spawn;
         private Location bedLocation;
         private Location shopVillager;
-        private Villager shopVillagerEntity;
+        private ShopNPC shopNPC;
         private boolean bedAlive;
         private boolean hasHadPlayers;
 
@@ -163,7 +254,6 @@ public class TeamManager {
 
             broadcastToTeam("§f§lBETT ZERSTÖRT! §7Du kannst nicht mehr respawnen!");
 
-            // Get the cosmetic bed destroy message
             String bedDestroyMessage = BedWars.getInstance().getCosmeticsManager()
                     .formatBedDestroyMessage(getColoredName(), destroyerName, destroyerColor, destroyer.getUniqueId());
 
@@ -191,7 +281,7 @@ public class TeamManager {
             players.clear();
             bedAlive = true;
             hasHadPlayers = false;
-            shopVillagerEntity = null;
+            shopNPC = null;
         }
 
         public boolean hasHadPlayers() {
@@ -211,8 +301,8 @@ public class TeamManager {
         public void setBedLocation(Location bedLocation) { this.bedLocation = bedLocation; }
         public Location getShopVillager() { return shopVillager; }
         public void setShopVillager(Location shopVillager) { this.shopVillager = shopVillager; }
-        public Villager getShopVillagerEntity() { return shopVillagerEntity; }
-        public void setShopVillagerEntity(Villager shopVillagerEntity) { this.shopVillagerEntity = shopVillagerEntity; }
+        public ShopNPC getShopNPC() { return shopNPC; }
+        public void setShopNPC(ShopNPC shopNPC) { this.shopNPC = shopNPC; }
         public boolean isBedAlive() { return bedAlive; }
         public Set<Location> getTeamGenerators() { return teamGenerators; }
     }

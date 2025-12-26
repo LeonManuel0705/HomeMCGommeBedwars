@@ -11,10 +11,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
-/**
- * Represents a player-like NPC with skin support.
- * Uses reflection to work with NMS classes for 1.8.8 compatibility.
- */
 public class PlayerNPC {
 
     private final UUID id;
@@ -27,8 +23,9 @@ public class PlayerNPC {
     private Object entityPlayer;
     private Object gameProfile;
     private int entityId = -1;
+    private float currentYaw;
+    private float currentPitch;
 
-    // NMS version string
     private static final String VERSION;
 
     static {
@@ -43,23 +40,20 @@ public class PlayerNPC {
         this.skinValue = skinValue;
         this.skinSignature = skinSignature;
         this.npcType = npcType;
+        this.currentYaw = location.getYaw();
+        this.currentPitch = location.getPitch();
     }
 
-    /**
-     * Creates and spawns the NPC entity.
-     */
     public void spawn() {
         try {
             Object server = getMinecraftServer();
             Object world = getWorldServer(location.getWorld());
 
-            // Create game profile
             String tabName = name.length() > 16 ? name.substring(0, 16) : name;
             Class<?> gameProfileClass = Class.forName("com.mojang.authlib.GameProfile");
             Constructor<?> gpConstructor = gameProfileClass.getConstructor(UUID.class, String.class);
             gameProfile = gpConstructor.newInstance(id, tabName);
 
-            // Apply skin if provided
             if (skinValue != null && !skinValue.isEmpty()) {
                 Method getProperties = gameProfileClass.getMethod("getProperties");
                 Object propertyMap = getProperties.invoke(gameProfile);
@@ -72,12 +66,10 @@ public class PlayerNPC {
                 putMethod.invoke(propertyMap, "textures", property);
             }
 
-            // Create PlayerInteractManager - in 1.8.8 it takes World, not WorldServer
             Class<?> worldClass = getNMSClass("World");
             Class<?> worldServerClass = getNMSClass("WorldServer");
             Class<?> playerInteractManagerClass = getNMSClass("PlayerInteractManager");
 
-            // Try to find the correct constructor (could be World or WorldServer)
             Constructor<?> pimConstructor = null;
             try {
                 pimConstructor = playerInteractManagerClass.getConstructor(worldClass);
@@ -86,24 +78,20 @@ public class PlayerNPC {
             }
             Object playerInteractManager = pimConstructor.newInstance(world);
 
-            // Create EntityPlayer
             Class<?> minecraftServerClass = getNMSClass("MinecraftServer");
             Class<?> entityPlayerClass = getNMSClass("EntityPlayer");
             Constructor<?> epConstructor = entityPlayerClass.getConstructor(
                     minecraftServerClass, worldServerClass, gameProfileClass, playerInteractManagerClass);
             entityPlayer = epConstructor.newInstance(server, world, gameProfile, playerInteractManager);
 
-            // Set location
             Method setLocation = entityPlayerClass.getMethod("setLocation",
                     double.class, double.class, double.class, float.class, float.class);
             setLocation.invoke(entityPlayer, location.getX(), location.getY(), location.getZ(),
                     location.getYaw(), location.getPitch());
 
-            // Get entity ID
             Method getIdMethod = getNMSClass("Entity").getMethod("getId");
             entityId = (int) getIdMethod.invoke(entityPlayer);
 
-            // Spawn for all online players
             for (Player player : Bukkit.getOnlinePlayers()) {
                 showTo(player);
             }
@@ -114,25 +102,16 @@ public class PlayerNPC {
         }
     }
 
-    /**
-     * Shows the NPC to a specific player.
-     */
     public void showTo(Player player) {
         if (entityPlayer == null) return;
 
         try {
             Object connection = getPlayerConnection(player);
 
-            // Add to tab list
             sendPacket(connection, createPlayerInfoPacket("ADD_PLAYER"));
-
-            // Spawn entity
             sendPacket(connection, createNamedEntitySpawnPacket());
+            sendPacket(connection, createHeadRotationPacket(currentYaw));
 
-            // Head rotation
-            sendPacket(connection, createHeadRotationPacket());
-
-            // Remove from tab list after delay
             Bukkit.getScheduler().runTaskLater(BedWars.getInstance(), () -> {
                 try {
                     sendPacket(connection, createPlayerInfoPacket("REMOVE_PLAYER"));
@@ -146,9 +125,6 @@ public class PlayerNPC {
         }
     }
 
-    /**
-     * Hides the NPC from a specific player.
-     */
     public void hideFrom(Player player) {
         if (entityPlayer == null) return;
 
@@ -160,9 +136,6 @@ public class PlayerNPC {
         }
     }
 
-    /**
-     * Destroys the NPC for all players.
-     */
     public void destroy() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             hideFrom(player);
@@ -171,9 +144,6 @@ public class PlayerNPC {
         entityId = -1;
     }
 
-    /**
-     * Makes the NPC look at a target location.
-     */
     public void lookAt(Location target) {
         if (entityPlayer == null) return;
 
@@ -186,23 +156,25 @@ public class PlayerNPC {
             float yaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90;
             float pitch = (float) -Math.toDegrees(Math.atan2(dy, dist));
 
-            // Update entity yaw/pitch
-            Field yawField = getNMSClass("Entity").getField("yaw");
-            Field pitchField = getNMSClass("Entity").getField("pitch");
+            this.currentYaw = yaw;
+            this.currentPitch = pitch;
+
+            Field yawField = getNMSClass("Entity").getDeclaredField("yaw");
+            Field pitchField = getNMSClass("Entity").getDeclaredField("pitch");
+            yawField.setAccessible(true);
+            pitchField.setAccessible(true);
             yawField.set(entityPlayer, yaw);
             pitchField.set(entityPlayer, pitch);
 
             for (Player player : Bukkit.getOnlinePlayers()) {
                 Object connection = getPlayerConnection(player);
-                sendPacket(connection, createHeadRotationPacket());
+                sendPacket(connection, createHeadRotationPacket(yaw));
                 sendPacket(connection, createLookPacket(yaw, pitch));
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
-    // Helper methods for NMS reflection
 
     private Object getMinecraftServer() throws Exception {
         Class<?> craftServerClass = getCraftBukkitClass("CraftServer");
@@ -256,10 +228,10 @@ public class PlayerNPC {
         return constructor.newInstance(entityPlayer);
     }
 
-    private Object createHeadRotationPacket() throws Exception {
+    private Object createHeadRotationPacket(float yaw) throws Exception {
         Class<?> packetClass = getNMSClass("PacketPlayOutEntityHeadRotation");
         Constructor<?> constructor = packetClass.getConstructor(getNMSClass("Entity"), byte.class);
-        return constructor.newInstance(entityPlayer, (byte) ((location.getYaw() * 256.0F) / 360.0F));
+        return constructor.newInstance(entityPlayer, (byte) ((yaw * 256.0F) / 360.0F));
     }
 
     private Object createLookPacket(float yaw, float pitch) throws Exception {
@@ -285,7 +257,6 @@ public class PlayerNPC {
         return Class.forName("org.bukkit.craftbukkit." + VERSION + "." + name);
     }
 
-    // Getters
     public UUID getId() { return id; }
     public String getName() { return name; }
     public Location getLocation() { return location; }

@@ -58,7 +58,6 @@ public class NametagManager {
         sbTeam.setPrefix(finalPrefix);
         sbTeam.setSuffix("");
 
-        // Use actual player name for scoreboard entry (required by Bukkit)
         if (!sbTeam.hasEntry(target.getName())) {
             sbTeam.addEntry(target.getName());
         }

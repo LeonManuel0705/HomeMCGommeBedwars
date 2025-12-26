@@ -43,6 +43,7 @@ public class BedWars extends JavaPlugin {
     private CosmeticsGUI cosmeticsGUI;
     private SignManager signManager;
     private PlayerNPCManager playerNPCManager;
+    private TabManager tabManager;
 
     public static final String PREFIX = "§cBedwars §8» ";
 
@@ -66,7 +67,6 @@ public class BedWars extends JavaPlugin {
 
         registerListeners();
 
-        // Register BungeeCord channel for server switching
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
         startTasks();
@@ -106,6 +106,7 @@ public class BedWars extends JavaPlugin {
         this.cosmeticsGUI = new CosmeticsGUI(this);
         this.signManager = new SignManager(this);
         this.playerNPCManager = new PlayerNPCManager(this);
+        this.tabManager = new TabManager(this);
 
         arenaManager.loadArenas();
     }
@@ -153,6 +154,7 @@ public class BedWars extends JavaPlugin {
         pm.registerEvents(new RescuePlatformListener(this), this);
         pm.registerEvents(new NPCClickListener(this), this);
         pm.registerEvents(new PlayerNPCClickListener(this), this);
+        pm.registerEvents(new ProjectileListener(this), this);
         pm.registerEvents(privateRoundGUI, this);
         pm.registerEvents(cosmeticsGUI, this);
     }
@@ -263,11 +265,10 @@ public class BedWars extends JavaPlugin {
         return playerNPCManager;
     }
 
-    /**
-     * Gets the display name for a player, considering nick status.
-     * If the player is nicked, returns the nick name.
-     * Otherwise returns the real name.
-     */
+    public TabManager getTabManager() {
+        return tabManager;
+    }
+
     public String getDisplayName(Player player) {
         if (core.getNickManager().isNicked(player.getUniqueId())) {
             return core.getNickManager().getDisplayName(player.getUniqueId());
@@ -275,9 +276,6 @@ public class BedWars extends JavaPlugin {
         return player.getName();
     }
 
-    /**
-     * Gets the display name for a player UUID, considering nick status.
-     */
     public String getDisplayName(java.util.UUID uuid) {
         if (core.getNickManager().isNicked(uuid)) {
             return core.getNickManager().getDisplayName(uuid);

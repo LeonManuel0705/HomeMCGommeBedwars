@@ -41,13 +41,9 @@ public class ArenaManager {
 
         plugin.getLogger().info(files.length + " Arena(s) geladen!");
 
-        // Clean up any leftover holograms from generators
         plugin.getServer().getScheduler().runTaskLater(plugin, this::cleanupGeneratorHolograms, 40L);
     }
 
-    /**
-     * Removes any leftover hologram ArmorStands near generator locations.
-     */
     public void cleanupGeneratorHolograms() {
         int removed = 0;
         for (Arena arena : getArenas()) {
@@ -57,7 +53,6 @@ public class ArenaManager {
                             gen.getLocation(), 5, 5, 5)) {
                         if (entity instanceof org.bukkit.entity.ArmorStand) {
                             org.bukkit.entity.ArmorStand armorStand = (org.bukkit.entity.ArmorStand) entity;
-                            // Remove invisible/small/no-gravity armor stands (holograms)
                             if (!armorStand.isVisible() || armorStand.isSmall() || !armorStand.hasGravity()) {
                                 entity.remove();
                                 removed++;

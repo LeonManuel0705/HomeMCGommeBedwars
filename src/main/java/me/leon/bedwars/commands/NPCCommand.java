@@ -100,7 +100,7 @@ public class NPCCommand implements CommandExecutor {
                     displayName = "§6§lBedWars §e(4x2)";
                     break;
                 case "PRIVATE":
-                    displayName = "§d§lPrivate Runde";
+                    displayName = "§5§lP§d§lr§5§li§d§lv§5§la§d§lt§5§le §d§lR§5§lu§d§ln§5§ld§d§le";
                     break;
                 default:
                     player.sendMessage(BedWars.PREFIX + "§cUngültiger Typ! Verfügbar: SOLO, DUO, TEAM, PRIVATE");
@@ -153,7 +153,7 @@ public class NPCCommand implements CommandExecutor {
                     displayName = "§6§lBedWars §e(4x2)";
                     break;
                 case "PRIVATE":
-                    displayName = "§d§lPrivate Runde";
+                    displayName = "§5§lP§d§lr§5§li§d§lv§5§la§d§lt§5§le §d§lR§5§lu§d§ln§5§ld§d§le";
                     break;
                 default:
                     player.sendMessage(BedWars.PREFIX + "§cUngültiger Typ! Verfügbar: SOLO, DUO, TEAM, PRIVATE");
@@ -161,7 +161,6 @@ public class NPCCommand implements CommandExecutor {
             }
         }
 
-        // Validate type
         if (!npcType.equals("PRIVATE")) {
             try {
                 LobbyManager.GameMode.valueOf(npcType);
@@ -178,9 +177,7 @@ public class NPCCommand implements CommandExecutor {
     }
 
     private void handleRemove(Player player) {
-        // Try to remove villager NPC first
         plugin.getNPCManager().removeNearestNPC(player.getLocation(), 5.0);
-        // Also try to remove player NPC
         plugin.getPlayerNPCManager().removeNearestNPC(player.getLocation(), 5.0);
         player.sendMessage(BedWars.PREFIX + "§aNächster NPC entfernt!");
     }
@@ -188,7 +185,6 @@ public class NPCCommand implements CommandExecutor {
     private void handleList(Player player) {
         player.sendMessage("§8§m=======§r §6§lBedWars NPCs §8§m=======§r");
 
-        // List villager NPCs
         Map<Location, NPCManager.NPCData> villagerNpcs = plugin.getNPCManager().getNPCs();
         if (!villagerNpcs.isEmpty()) {
             player.sendMessage("§e§lVillager NPCs:");
@@ -201,7 +197,6 @@ public class NPCCommand implements CommandExecutor {
             }
         }
 
-        // List player NPCs
         Map<UUID, PlayerNPC> playerNpcs = plugin.getPlayerNPCManager().getNPCs();
         if (!playerNpcs.isEmpty()) {
             player.sendMessage("§b§lSpieler NPCs:");
