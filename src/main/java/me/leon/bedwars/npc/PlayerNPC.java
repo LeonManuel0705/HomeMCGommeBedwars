@@ -72,10 +72,18 @@ public class PlayerNPC {
                 putMethod.invoke(propertyMap, "textures", property);
             }
 
-            // Create PlayerInteractManager
+            // Create PlayerInteractManager - in 1.8.8 it takes World, not WorldServer
+            Class<?> worldClass = getNMSClass("World");
             Class<?> worldServerClass = getNMSClass("WorldServer");
             Class<?> playerInteractManagerClass = getNMSClass("PlayerInteractManager");
-            Constructor<?> pimConstructor = playerInteractManagerClass.getConstructor(worldServerClass);
+
+            // Try to find the correct constructor (could be World or WorldServer)
+            Constructor<?> pimConstructor = null;
+            try {
+                pimConstructor = playerInteractManagerClass.getConstructor(worldClass);
+            } catch (NoSuchMethodException e) {
+                pimConstructor = playerInteractManagerClass.getConstructor(worldServerClass);
+            }
             Object playerInteractManager = pimConstructor.newInstance(world);
 
             // Create EntityPlayer
