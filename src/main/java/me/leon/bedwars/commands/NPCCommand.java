@@ -3,6 +3,7 @@ package me.leon.bedwars.commands;
 import me.leon.bedwars.BedWars;
 import me.leon.bedwars.lobby.LobbyManager;
 import me.leon.bedwars.managers.NPCManager;
+import me.leon.bedwars.npc.PlayerNPC;
 import me.leon.core.managers.RankManager;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -11,6 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
+import java.util.UUID;
 
 public class NPCCommand implements CommandExecutor {
 
@@ -50,6 +52,9 @@ public class NPCCommand implements CommandExecutor {
             case "spawn":
             case "create":
                 handleSpawn(player, args);
+                break;
+            case "player":
+                handlePlayerNPC(player, args);
                 break;
             case "remove":
             case "delete":
@@ -118,19 +123,76 @@ public class NPCCommand implements CommandExecutor {
         player.sendMessage(BedWars.PREFIX + "§aNPC für §e" + npcType + " §agespawnt!");
     }
 
+    private void handlePlayerNPC(Player player, String[] args) {
+        if (args.length < 3) {
+            player.sendMessage("§c/bwnpc player <Typ> <Skin> [Name]");
+            player.sendMessage("§7Typen: SOLO, DUO, TEAM, PRIVATE");
+            player.sendMessage("§7Skin: Minecraft-Spielername für die Skin");
+            return;
+        }
+
+        String npcType = args[1].toUpperCase();
+        String skinName = args[2];
+        String displayName;
+
+        if (args.length >= 4) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 3; i < args.length; i++) {
+                sb.append(args[i]).append(" ");
+            }
+            displayName = sb.toString().trim().replace("&", "§");
+        } else {
+            switch (npcType) {
+                case "SOLO":
+                    displayName = "§6§lBedWars §e(1x8)";
+                    break;
+                case "DUO":
+                    displayName = "§6§lBedWars §e(2x4)";
+                    break;
+                case "TEAM":
+                    displayName = "§6§lBedWars §e(4x2)";
+                    break;
+                case "PRIVATE":
+                    displayName = "§d§lPrivate Runde";
+                    break;
+                default:
+                    player.sendMessage(BedWars.PREFIX + "§cUngültiger Typ! Verfügbar: SOLO, DUO, TEAM, PRIVATE");
+                    return;
+            }
+        }
+
+        // Validate type
+        if (!npcType.equals("PRIVATE")) {
+            try {
+                LobbyManager.GameMode.valueOf(npcType);
+            } catch (IllegalArgumentException e) {
+                player.sendMessage(BedWars.PREFIX + "§cUngültiger Typ! Verfügbar: SOLO, DUO, TEAM, PRIVATE");
+                return;
+            }
+        }
+
+        player.sendMessage(BedWars.PREFIX + "§eSpieler-NPC wird erstellt, Skin wird geladen...");
+
+        plugin.getPlayerNPCManager().createNPC(player.getLocation(), displayName, skinName, npcType);
+        player.sendMessage(BedWars.PREFIX + "§aSpieler-NPC für §e" + npcType + " §amit Skin von §e" + skinName + " §aerstellt!");
+    }
+
     private void handleRemove(Player player) {
+        // Try to remove villager NPC first
         plugin.getNPCManager().removeNearestNPC(player.getLocation(), 5.0);
+        // Also try to remove player NPC
+        plugin.getPlayerNPCManager().removeNearestNPC(player.getLocation(), 5.0);
         player.sendMessage(BedWars.PREFIX + "§aNächster NPC entfernt!");
     }
 
     private void handleList(Player player) {
         player.sendMessage("§8§m=======§r §6§lBedWars NPCs §8§m=======§r");
 
-        Map<Location, NPCManager.NPCData> npcs = plugin.getNPCManager().getNPCs();
-        if (npcs.isEmpty()) {
-            player.sendMessage("§7Keine NPCs vorhanden.");
-        } else {
-            for (Map.Entry<Location, NPCManager.NPCData> entry : npcs.entrySet()) {
+        // List villager NPCs
+        Map<Location, NPCManager.NPCData> villagerNpcs = plugin.getNPCManager().getNPCs();
+        if (!villagerNpcs.isEmpty()) {
+            player.sendMessage("§e§lVillager NPCs:");
+            for (Map.Entry<Location, NPCManager.NPCData> entry : villagerNpcs.entrySet()) {
                 NPCManager.NPCData data = entry.getValue();
                 player.sendMessage("§8- §e" + data.getDisplayName() + " §7(" + data.getNpcType() + ")");
                 player.sendMessage("  §7Welt: §f" + data.getLocation().getWorld().getName());
@@ -139,17 +201,35 @@ public class NPCCommand implements CommandExecutor {
             }
         }
 
+        // List player NPCs
+        Map<UUID, PlayerNPC> playerNpcs = plugin.getPlayerNPCManager().getNPCs();
+        if (!playerNpcs.isEmpty()) {
+            player.sendMessage("§b§lSpieler NPCs:");
+            for (PlayerNPC npc : playerNpcs.values()) {
+                player.sendMessage("§8- §b" + npc.getName() + " §7(" + npc.getNpcType() + ")");
+                player.sendMessage("  §7Welt: §f" + npc.getLocation().getWorld().getName());
+                player.sendMessage("  §7Position: §f" + (int) npc.getLocation().getX() + ", " +
+                        (int) npc.getLocation().getY() + ", " + (int) npc.getLocation().getZ());
+            }
+        }
+
+        if (villagerNpcs.isEmpty() && playerNpcs.isEmpty()) {
+            player.sendMessage("§7Keine NPCs vorhanden.");
+        }
+
         player.sendMessage("§8§m================================");
     }
 
     private void handleRespawn(Player player) {
         plugin.getNPCManager().respawnAllNPCs();
+        plugin.getPlayerNPCManager().respawnAllNPCs();
         player.sendMessage(BedWars.PREFIX + "§aAlle NPCs wurden neu gespawnt!");
     }
 
     private void sendHelp(Player player) {
         player.sendMessage("§8§m=======§r §6§lNPC Befehle §8§m=======§r");
-        player.sendMessage("§e/bwnpc spawn <Typ> [Name] §8- §7NPC spawnen");
+        player.sendMessage("§e/bwnpc spawn <Typ> [Name] §8- §7Villager NPC spawnen");
+        player.sendMessage("§b/bwnpc player <Typ> <Skin> [Name] §8- §7Spieler NPC mit Skin");
         player.sendMessage("§e/bwnpc remove §8- §7Nächsten NPC entfernen");
         player.sendMessage("§e/bwnpc list §8- §7Alle NPCs anzeigen");
         player.sendMessage("§e/bwnpc respawn §8- §7Alle NPCs neu spawnen");

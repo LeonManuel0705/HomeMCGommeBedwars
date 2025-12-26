@@ -8,6 +8,8 @@ import me.leon.bedwars.gui.PrivateRoundGUI;
 import me.leon.bedwars.listeners.*;
 import me.leon.bedwars.lobby.*;
 import me.leon.bedwars.managers.*;
+import me.leon.bedwars.npc.PlayerNPCClickListener;
+import me.leon.bedwars.npc.PlayerNPCManager;
 import me.leon.bedwars.shop.ShopManager;
 import me.leon.bedwars.utils.ConfigManager;
 import me.leon.core.Core;
@@ -40,6 +42,7 @@ public class BedWars extends JavaPlugin {
     private CosmeticsManager cosmeticsManager;
     private CosmeticsGUI cosmeticsGUI;
     private SignManager signManager;
+    private PlayerNPCManager playerNPCManager;
 
     public static final String PREFIX = "§cBedwars §8» ";
 
@@ -77,6 +80,9 @@ public class BedWars extends JavaPlugin {
         if (gameManager != null) {
             gameManager.shutdown();
         }
+        if (playerNPCManager != null) {
+            playerNPCManager.shutdown();
+        }
 
         getLogger().info("BedWars wurde deaktiviert!");
     }
@@ -99,6 +105,7 @@ public class BedWars extends JavaPlugin {
         this.cosmeticsManager = new CosmeticsManager(this);
         this.cosmeticsGUI = new CosmeticsGUI(this);
         this.signManager = new SignManager(this);
+        this.playerNPCManager = new PlayerNPCManager(this);
 
         arenaManager.loadArenas();
     }
@@ -145,6 +152,7 @@ public class BedWars extends JavaPlugin {
         pm.registerEvents(new PotionListener(this), this);
         pm.registerEvents(new RescuePlatformListener(this), this);
         pm.registerEvents(new NPCClickListener(this), this);
+        pm.registerEvents(new PlayerNPCClickListener(this), this);
         pm.registerEvents(privateRoundGUI, this);
         pm.registerEvents(cosmeticsGUI, this);
     }
@@ -249,6 +257,10 @@ public class BedWars extends JavaPlugin {
 
     public SignManager getSignManager() {
         return signManager;
+    }
+
+    public PlayerNPCManager getPlayerNPCManager() {
+        return playerNPCManager;
     }
 
     /**

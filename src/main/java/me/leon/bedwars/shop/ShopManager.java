@@ -491,7 +491,9 @@ public class ShopManager {
             ItemStack item = new ItemStack(material, amount, data);
             ItemMeta meta = item.getItemMeta();
 
-            meta.setDisplayName(name);
+            // Remove quantity suffix (e.g., " §8x2") from display name for actual items
+            String cleanName = name.replaceAll(" §8x\\d+$", "");
+            meta.setDisplayName(cleanName);
 
             if (enchantments != null) {
                 for (EnchantData enchant : enchantments) {
@@ -512,6 +514,7 @@ public class ShopManager {
         public ItemStack createDisplayItem(Player player, BedWarsTeam team) {
             ItemStack item = createItem(team);
             ItemMeta meta = item.getItemMeta();
+            // Use original name with quantity suffix for shop display
             meta.setDisplayName(name);
 
             List<String> lore = new ArrayList<>();

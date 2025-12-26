@@ -74,6 +74,10 @@ public class GameManager {
         return playerArenas.get(uuid);
     }
 
+    public void removePlayerFromArenaMap(UUID uuid) {
+        playerArenas.remove(uuid);
+    }
+
     public Arena getArena(String name) {
         return arenas.get(name);
     }

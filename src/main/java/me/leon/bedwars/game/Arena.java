@@ -107,6 +107,9 @@ public class Arena {
             broadcastMessage("§8[§a+§8] " + getPlayerDisplayName(player) + " §7hat das Spiel betreten §8(§e" +
                     players.size() + "§8/§e" + maxPlayers + "§8)");
 
+            // Update scoreboard for the player who joined
+            plugin.getScoreboardManager().updateScoreboard(this);
+
             if (players.size() >= minPlayers && gameState == GameState.WAITING) {
                 startCountdown();
             }
@@ -185,7 +188,13 @@ public class Arena {
                 Player player = plugin.getServer().getPlayer(uuid);
                 if (player != null) {
                     removePlayer(player, false);
+                    // Remove from GameManager's playerArenas map so lobby items work again
+                    plugin.getGameManager().removePlayerFromArenaMap(uuid);
                     plugin.getLobbyManager().sendToLobby(player);
+                    // Re-enable fly for players with permission
+                    if (player.hasPermission("homemc.fly")) {
+                        player.setAllowFlight(true);
+                    }
                 }
             }
             reset();
@@ -465,6 +474,13 @@ public class Arena {
                     if (entity instanceof org.bukkit.entity.Item) {
                         entity.remove();
                     }
+                    // Remove hologram armor stands near generators
+                    if (entity instanceof org.bukkit.entity.ArmorStand) {
+                        org.bukkit.entity.ArmorStand armorStand = (org.bukkit.entity.ArmorStand) entity;
+                        if (!armorStand.isVisible() || armorStand.isSmall() || armorStand.hasGravity() == false) {
+                            entity.remove();
+                        }
+                    }
                 }
             }
         }
@@ -581,7 +597,13 @@ public class Arena {
             Player player = plugin.getServer().getPlayer(uuid);
             if (player != null) {
                 removePlayer(player, false);
+                // Remove from GameManager's playerArenas map so lobby items work again
+                plugin.getGameManager().removePlayerFromArenaMap(uuid);
                 plugin.getLobbyManager().sendToLobby(player);
+                // Re-enable fly for players with permission
+                if (player.hasPermission("homemc.fly")) {
+                    player.setAllowFlight(true);
+                }
             }
         }
 
