@@ -148,8 +148,9 @@ public class PlayerNPC {
         if (entityPlayer == null) return;
 
         try {
+            double npcEyeY = location.getY() + 1.62;
             double dx = target.getX() - location.getX();
-            double dy = target.getY() - location.getY();
+            double dy = target.getY() - npcEyeY;
             double dz = target.getZ() - location.getZ();
             double dist = Math.sqrt(dx * dx + dz * dz);
 

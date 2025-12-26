@@ -155,6 +155,7 @@ public class BedWars extends JavaPlugin {
         pm.registerEvents(new NPCClickListener(this), this);
         pm.registerEvents(new PlayerNPCClickListener(this), this);
         pm.registerEvents(new ProjectileListener(this), this);
+        pm.registerEvents(new PlayerUnnickListener(this), this);
         pm.registerEvents(privateRoundGUI, this);
         pm.registerEvents(cosmeticsGUI, this);
     }

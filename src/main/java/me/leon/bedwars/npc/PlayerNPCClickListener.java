@@ -1,6 +1,13 @@
 package me.leon.bedwars.npc;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
 import me.leon.bedwars.BedWars;
+import me.leon.bedwars.game.Arena;
+import me.leon.bedwars.game.GameState;
+import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -34,7 +41,6 @@ public class PlayerNPCClickListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-
         removePacketListener(player);
     }
 
@@ -46,20 +52,30 @@ public class PlayerNPCClickListener implements Listener {
 
             Field channelField = networkManager.getClass().getDeclaredField("channel");
             channelField.setAccessible(true);
-            Object channel = channelField.get(networkManager);
+            Channel channel = (Channel) channelField.get(networkManager);
 
-            Object pipeline = channel.getClass().getMethod("pipeline").invoke(channel);
+            ChannelPipeline pipeline = channel.pipeline();
 
             String handlerName = "bedwars_npc_handler";
 
-            Object existingHandler = pipeline.getClass().getMethod("get", String.class).invoke(pipeline, handlerName);
-            if (existingHandler == null) {
-                Class<?> channelDuplexHandlerClass = Class.forName("io.netty.channel.ChannelDuplexHandler");
-                Object handler = createPacketHandler(player, channelDuplexHandlerClass);
+            if (pipeline.get(handlerName) == null) {
+                pipeline.addBefore("packet_handler", handlerName, new ChannelDuplexHandler() {
+                    @Override
+                    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                        if (msg.getClass().getSimpleName().equals("PacketPlayInUseEntity")) {
+                            int entityId = getEntityIdFromPacket(msg);
 
-                pipeline.getClass().getMethod("addBefore", String.class, String.class,
-                    Class.forName("io.netty.channel.ChannelHandler"))
-                    .invoke(pipeline, "packet_handler", handlerName, handler);
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                if (plugin.getPlayerNPCManager().getNPCByEntityId(entityId) != null) {
+                                    plugin.getPlayerNPCManager().handleNPCClick(player, entityId);
+                                } else {
+                                    handleShopNPCClick(player, entityId);
+                                }
+                            });
+                        }
+                        super.channelRead(ctx, msg);
+                    }
+                });
             }
 
         } catch (Exception e) {
@@ -67,14 +83,14 @@ public class PlayerNPCClickListener implements Listener {
         }
     }
 
-    private Object createPacketHandler(Player player, Class<?> handlerClass) throws Exception {
-        return java.lang.reflect.Proxy.newProxyInstance(
-            handlerClass.getClassLoader(),
-            new Class[]{Class.forName("io.netty.channel.ChannelHandler")},
-            (proxy, method, args) -> {
-                return null;
-            }
-        );
+    private int getEntityIdFromPacket(Object packet) {
+        try {
+            Field field = packet.getClass().getDeclaredField("a");
+            field.setAccessible(true);
+            return field.getInt(packet);
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     private void removePacketListener(Player player) {
@@ -85,17 +101,29 @@ public class PlayerNPCClickListener implements Listener {
 
             Field channelField = networkManager.getClass().getDeclaredField("channel");
             channelField.setAccessible(true);
-            Object channel = channelField.get(networkManager);
+            Channel channel = (Channel) channelField.get(networkManager);
 
-            Object pipeline = channel.getClass().getMethod("pipeline").invoke(channel);
+            ChannelPipeline pipeline = channel.pipeline();
 
             String handlerName = "bedwars_npc_handler";
-            Object existingHandler = pipeline.getClass().getMethod("get", String.class).invoke(pipeline, handlerName);
-            if (existingHandler != null) {
-                pipeline.getClass().getMethod("remove", String.class).invoke(pipeline, handlerName);
+            if (pipeline.get(handlerName) != null) {
+                pipeline.remove(handlerName);
             }
 
         } catch (Exception e) {
+        }
+    }
+
+    private void handleShopNPCClick(Player player, int entityId) {
+        Arena arena = plugin.getGameManager().getArenaByPlayer(player.getUniqueId());
+        if (arena == null || arena.getGameState() != GameState.INGAME) return;
+
+        for (BedWarsTeam team : arena.getTeams().values()) {
+            ShopNPC shopNPC = team.getShopNPC();
+            if (shopNPC != null && shopNPC.getEntityId() == entityId) {
+                plugin.getShopManager().openShop(player, arena);
+                return;
+            }
         }
     }
 }
