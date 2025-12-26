@@ -112,6 +112,7 @@ public class TeamManager {
         private Location shopVillager;
         private Villager shopVillagerEntity;
         private boolean bedAlive;
+        private boolean hasHadPlayers;
 
         private final Set<Location> teamGenerators;
 
@@ -120,11 +121,13 @@ public class TeamManager {
             this.players = new HashSet<>();
             this.maxPlayers = maxPlayers;
             this.bedAlive = true;
+            this.hasHadPlayers = false;
             this.teamGenerators = new HashSet<>();
         }
 
         public void addPlayer(UUID uuid) {
             players.add(uuid);
+            hasHadPlayers = true;
         }
 
         public void removePlayer(UUID uuid) {
@@ -147,23 +150,29 @@ public class TeamManager {
             bedAlive = false;
 
             String destroyerName;
+            String destroyerColor;
             if (BedWars.getInstance().getCore().getNickManager().isNicked(destroyer.getUniqueId())) {
-                destroyerName = "§7" + BedWars.getInstance().getCore().getNickManager()
+                destroyerName = BedWars.getInstance().getCore().getNickManager()
                         .getDisplayName(destroyer.getUniqueId());
+                destroyerColor = "§7";
             } else {
-                destroyerName = BedWars.getInstance().getCore().getRankManager()
-                        .getRankColor(destroyer) + destroyer.getName();
+                destroyerName = destroyer.getName();
+                destroyerColor = BedWars.getInstance().getCore().getRankManager()
+                        .getRankColor(destroyer);
             }
 
             broadcastToTeam("§f§lBETT ZERSTÖRT! §7Du kannst nicht mehr respawnen!");
+
+            // Get the cosmetic bed destroy message
+            String bedDestroyMessage = BedWars.getInstance().getCosmeticsManager()
+                    .formatBedDestroyMessage(getColoredName(), destroyerName, destroyerColor, destroyer.getUniqueId());
 
             for (UUID uuid : BedWars.getInstance().getGameManager().getArenaByPlayer(destroyer.getUniqueId())
                     .getPlayers()) {
                 if (!players.contains(uuid)) {
                     Player p = BedWars.getInstance().getServer().getPlayer(uuid);
                     if (p != null) {
-                        p.sendMessage("§f§lBETT ZERSTÖRT > " + getColoredName() + " §7von " +
-                                destroyerName);
+                        p.sendMessage(bedDestroyMessage);
                     }
                 }
             }
@@ -181,7 +190,12 @@ public class TeamManager {
         public void reset() {
             players.clear();
             bedAlive = true;
+            hasHadPlayers = false;
             shopVillagerEntity = null;
+        }
+
+        public boolean hasHadPlayers() {
+            return hasHadPlayers;
         }
 
         public String getColoredName() {

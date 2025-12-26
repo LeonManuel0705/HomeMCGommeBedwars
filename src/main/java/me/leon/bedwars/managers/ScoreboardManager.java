@@ -109,13 +109,21 @@ public class ScoreboardManager {
             }
             obj.getScore("§f  ").setScore(line--);
 
-            // Team status
+            // Team status - show all teams that started in the game
             for (BedWarsTeam team : arena.getTeams().values()) {
-                if (team.getPlayers().isEmpty() && !team.isBedAlive()) continue;
+                // Skip teams that never had players
+                if (!team.hasHadPlayers()) continue;
 
-                String bedStatus = team.isBedAlive() ? "§a✔" : (team.getPlayers().isEmpty() ? "§c✘" : "§e" + team.getPlayers().size());
-                String teamLine = team.getColor().getColorCode() + team.getColor().getDisplayName().charAt(0) +
-                        " §f" + team.getColor().getDisplayName() + ": " + bedStatus;
+                String bedStatus;
+                if (team.isBedAlive()) {
+                    bedStatus = "§a✔";
+                } else if (team.getPlayers().isEmpty()) {
+                    bedStatus = "§c✘";
+                } else {
+                    bedStatus = "§e" + team.getPlayers().size();
+                }
+
+                String teamLine = team.getColor().getColorCode() + team.getColor().getDisplayName() + ": " + bedStatus;
                 obj.getScore(teamLine).setScore(line--);
             }
 

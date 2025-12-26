@@ -53,8 +53,8 @@ public class RescuePlatformListener implements Listener {
         }
 
         BedWarsTeam team = getPlayerTeam(arena, player);
-        Material woolMaterial = Material.WOOL;
-        byte woolData = team != null ? (byte) team.getColor().getData() : 0;
+        Material glassMaterial = Material.STAINED_GLASS;
+        byte glassData = team != null ? (byte) team.getColor().getData() : 0;
 
         int blocksPlaced = 0;
         java.util.List<Location> placedLocations = new java.util.ArrayList<>();
@@ -68,8 +68,8 @@ public class RescuePlatformListener implements Listener {
                 );
 
                 if (block.getType() == Material.AIR) {
-                    block.setType(woolMaterial);
-                    block.setData(woolData);
+                    block.setType(glassMaterial);
+                    block.setData(glassData);
                     Location blockLocation = block.getLocation();
                     arena.getPlacedBlocks().add(blockLocation);
                     placedLocations.add(blockLocation);
@@ -92,7 +92,7 @@ public class RescuePlatformListener implements Listener {
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 for (Location loc : placedLocations) {
                     Block block = loc.getBlock();
-                    if (block.getType() == woolMaterial) {
+                    if (block.getType() == glassMaterial) {
                         block.setType(Material.AIR);
                         arena.getPlacedBlocks().remove(loc);
                     }

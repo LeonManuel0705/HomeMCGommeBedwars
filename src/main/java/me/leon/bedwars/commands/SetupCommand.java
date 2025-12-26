@@ -7,10 +7,16 @@ import me.leon.bedwars.lobby.LobbyManager;
 import me.leon.bedwars.managers.TeamManager.BedWarsTeam;
 import me.leon.bedwars.managers.TeamManager.TeamColor;
 import me.leon.core.managers.RankManager;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+
+import java.util.HashSet;
 
 public class SetupCommand implements CommandExecutor {
 
@@ -285,6 +291,47 @@ public class SetupCommand implements CommandExecutor {
                 player.sendMessage("§aArena gespeichert!");
                 break;
 
+            case "createsign":
+                if (args.length < 2) {
+                    player.sendMessage("§c/setup createsign <arena>");
+                    player.sendMessage("§7Schaue auf ein Schild!");
+                    return true;
+                }
+
+                Arena signArena = plugin.getGameManager().getArena(args[1]);
+                if (signArena == null) {
+                    player.sendMessage("§cArena nicht gefunden!");
+                    return true;
+                }
+
+                Block targetBlock = player.getTargetBlock((HashSet<Material>) null, 5);
+                if (!(targetBlock.getState() instanceof Sign)) {
+                    player.sendMessage("§cDu musst auf ein Schild schauen!");
+                    return true;
+                }
+
+                Location signLoc = targetBlock.getLocation();
+                plugin.getSignManager().createSign(signLoc, signArena.getName());
+                player.sendMessage("§aJoin-Schild für Arena §e" + signArena.getName() + " §aerstellt!");
+                break;
+
+            case "removesign":
+                Block removeBlock = player.getTargetBlock((HashSet<Material>) null, 5);
+                if (!(removeBlock.getState() instanceof Sign)) {
+                    player.sendMessage("§cDu musst auf ein Schild schauen!");
+                    return true;
+                }
+
+                Location removeLoc = removeBlock.getLocation();
+                if (!plugin.getSignManager().isArenaSign(removeLoc)) {
+                    player.sendMessage("§cDieses Schild ist kein Arena-Schild!");
+                    return true;
+                }
+
+                plugin.getSignManager().removeSign(removeLoc);
+                player.sendMessage("§aArena-Schild entfernt!");
+                break;
+
             default:
                 sendSetupHelp(player);
                 break;
@@ -305,6 +352,8 @@ public class SetupCommand implements CommandExecutor {
         player.sendMessage("§e/setup setbed <arena> <team>");
         player.sendMessage("§e/setup setshop <arena> <team>");
         player.sendMessage("§e/setup addgenerator <arena> <type>");
+        player.sendMessage("§e/setup createsign <arena> §7- Schild erstellen");
+        player.sendMessage("§e/setup removesign §7- Schild entfernen");
         player.sendMessage("§e/setup save <arena>");
         player.sendMessage("§8§m━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }

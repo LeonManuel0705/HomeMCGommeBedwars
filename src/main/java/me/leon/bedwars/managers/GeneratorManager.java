@@ -62,32 +62,5 @@ public class GeneratorManager {
     public void createGenerator(Arena arena, Location location, GeneratorType type) {
         GeneratorData gen = new GeneratorData(type, location);
         arena.getGenerators().put(location, gen);
-
-        createGeneratorHologram(location, type);
-    }
-
-    private void createGeneratorHologram(Location location, GeneratorType type) {
-        Location hologramLoc = location.clone().add(0.5, 2.0, 0.5);
-
-        org.bukkit.entity.ArmorStand stand = location.getWorld().spawn(hologramLoc,
-                org.bukkit.entity.ArmorStand.class);
-        stand.setVisible(false);
-        stand.setGravity(false);
-        stand.setCustomNameVisible(true);
-        stand.setMarker(true);
-
-        String name = "§e§lERROR";
-        switch (type) {
-            case BRONZE:
-                name = "§6§lBRONZE";
-                break;
-            case IRON:
-                name = "§f§lEISEN";
-                break;
-            case GOLD:
-                name = "§e§lGOLD";
-                break;
-        }
-        stand.setCustomName(name);
     }
 }

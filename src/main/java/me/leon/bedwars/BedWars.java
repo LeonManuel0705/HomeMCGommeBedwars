@@ -39,6 +39,7 @@ public class BedWars extends JavaPlugin {
     private PrivateCommand privateCommand;
     private CosmeticsManager cosmeticsManager;
     private CosmeticsGUI cosmeticsGUI;
+    private SignManager signManager;
 
     public static final String PREFIX = "§cBedwars §8» ";
 
@@ -97,6 +98,7 @@ public class BedWars extends JavaPlugin {
         this.privateRoundGUI = new PrivateRoundGUI(this);
         this.cosmeticsManager = new CosmeticsManager(this);
         this.cosmeticsGUI = new CosmeticsGUI(this);
+        this.signManager = new SignManager(this);
 
         arenaManager.loadArenas();
     }
@@ -243,6 +245,10 @@ public class BedWars extends JavaPlugin {
 
     public CosmeticsGUI getCosmeticsGUI() {
         return cosmeticsGUI;
+    }
+
+    public SignManager getSignManager() {
+        return signManager;
     }
 
     /**

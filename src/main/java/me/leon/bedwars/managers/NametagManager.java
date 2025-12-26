@@ -20,19 +20,27 @@ public class NametagManager {
         String teamColor = bedwarsTeam.getColor().getColorCode();
         String teamName = getFullTeamName(bedwarsTeam.getColor());
 
+        String displayName = getDisplayName(player);
         String prefix = teamColor + teamName + " §7| " + teamColor;
 
-        String tabName = teamColor + player.getName();
+        String tabName = teamColor + displayName;
         player.setPlayerListName(tabName);
 
         for (Player online : Bukkit.getOnlinePlayers()) {
-            updateScoreboardTeamFor(online, player, bedwarsTeam.getColor(), prefix);
+            updateScoreboardTeamFor(online, player, bedwarsTeam.getColor(), prefix, displayName);
         }
 
-        plugin.getLogger().info("[Nametag] Set for " + player.getName() + " in team " + teamName);
+        plugin.getLogger().info("[Nametag] Set for " + displayName + " in team " + teamName);
     }
 
-    private void updateScoreboardTeamFor(Player viewer, Player target, TeamColor teamColor, String prefix) {
+    private String getDisplayName(Player player) {
+        if (plugin.getCore().getNickManager().isNicked(player.getUniqueId())) {
+            return plugin.getCore().getNickManager().getDisplayName(player.getUniqueId());
+        }
+        return player.getName();
+    }
+
+    private void updateScoreboardTeamFor(Player viewer, Player target, TeamColor teamColor, String prefix, String displayName) {
         Scoreboard board = plugin.getScoreboardManager().getOrCreateScoreboard(viewer);
 
         String scoreboardTeamName = getScoreboardTeamName(teamColor);
@@ -50,6 +58,7 @@ public class NametagManager {
         sbTeam.setPrefix(finalPrefix);
         sbTeam.setSuffix("");
 
+        // Use actual player name for scoreboard entry (required by Bukkit)
         if (!sbTeam.hasEntry(target.getName())) {
             sbTeam.addEntry(target.getName());
         }
@@ -85,6 +94,7 @@ public class NametagManager {
 
     public void setSpectatorNametag(Player player) {
         String prefix = "§7[SPEC] ";
+        String displayName = getDisplayName(player);
 
         for (Player online : Bukkit.getOnlinePlayers()) {
             Scoreboard board = plugin.getScoreboardManager().getOrCreateScoreboard(online);
@@ -104,7 +114,7 @@ public class NametagManager {
             }
         }
 
-        player.setPlayerListName("§7[SPEC] " + player.getName());
+        player.setPlayerListName("§7[SPEC] " + displayName);
     }
 
     public void hideNametag(Player player) {

@@ -333,6 +333,14 @@ public class Arena {
 
     private void giveTeamSelector(Player player) {
         player.getInventory().setItem(0, plugin.getTeamManager().getTeamSelectorItem());
+
+        // Give leave item in slot 8
+        org.bukkit.inventory.ItemStack leaveItem = new org.bukkit.inventory.ItemStack(Material.MAGMA_CREAM);
+        org.bukkit.inventory.meta.ItemMeta leaveMeta = leaveItem.getItemMeta();
+        leaveMeta.setDisplayName("§c§lSpiel verlassen");
+        leaveMeta.setLore(java.util.Arrays.asList("§7Klicke um das Spiel zu verlassen", "§7und zur Lobby zurückzukehren"));
+        leaveItem.setItemMeta(leaveMeta);
+        player.getInventory().setItem(8, leaveItem);
     }
 
     private void giveStartItems(Player player, BedWarsTeam team) {

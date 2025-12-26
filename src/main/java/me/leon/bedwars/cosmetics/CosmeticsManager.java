@@ -30,12 +30,24 @@ public class CosmeticsManager {
                                 "kill_message VARCHAR(50) DEFAULT 'DEFAULT', " +
                                 "death_message VARCHAR(50) DEFAULT 'DEFAULT', " +
                                 "bed_destroy_sound VARCHAR(50) DEFAULT 'DEFAULT', " +
+                                "bed_destroy_message VARCHAR(50) DEFAULT 'DEFAULT', " +
                                 "victory_dance VARCHAR(50) DEFAULT 'DEFAULT', " +
                                 "owned_cosmetics TEXT DEFAULT ''" +
                                 ")"
                 );
                 ps.executeUpdate();
                 ps.close();
+
+                // Add bed_destroy_message column if it doesn't exist (for existing databases)
+                try {
+                    PreparedStatement alter = plugin.getCore().getMySQL().getConnection().prepareStatement(
+                            "ALTER TABLE bedwars_cosmetics ADD COLUMN bed_destroy_message VARCHAR(50) DEFAULT 'DEFAULT'"
+                    );
+                    alter.executeUpdate();
+                    alter.close();
+                } catch (Exception ignored) {
+                    // Column already exists
+                }
             } catch (Exception e) {
                 plugin.getLogger().severe("Failed to create cosmetics table: " + e.getMessage());
             }
@@ -53,10 +65,19 @@ public class CosmeticsManager {
 
                 PlayerCosmetics cosmetics;
                 if (rs.next()) {
+                    String bedMsgStr = rs.getString("bed_destroy_message");
+                    BedDestroyMessage bedMsg = BedDestroyMessage.DEFAULT;
+                    if (bedMsgStr != null) {
+                        try {
+                            bedMsg = BedDestroyMessage.valueOf(bedMsgStr);
+                        } catch (IllegalArgumentException ignored) {}
+                    }
+
                     cosmetics = new PlayerCosmetics(
                             KillMessage.valueOf(rs.getString("kill_message")),
                             DeathMessage.valueOf(rs.getString("death_message")),
                             BedDestroySound.valueOf(rs.getString("bed_destroy_sound")),
+                            bedMsg,
                             VictoryDance.valueOf(rs.getString("victory_dance")),
                             rs.getString("owned_cosmetics")
                     );
@@ -98,14 +119,15 @@ public class CosmeticsManager {
             try {
                 PreparedStatement ps = plugin.getCore().getMySQL().getConnection().prepareStatement(
                         "UPDATE bedwars_cosmetics SET kill_message = ?, death_message = ?, " +
-                                "bed_destroy_sound = ?, victory_dance = ?, owned_cosmetics = ? WHERE uuid = ?"
+                                "bed_destroy_sound = ?, bed_destroy_message = ?, victory_dance = ?, owned_cosmetics = ? WHERE uuid = ?"
                 );
                 ps.setString(1, cosmetics.getKillMessage().name());
                 ps.setString(2, cosmetics.getDeathMessage().name());
                 ps.setString(3, cosmetics.getBedDestroySound().name());
-                ps.setString(4, cosmetics.getVictoryDance().name());
-                ps.setString(5, cosmetics.getOwnedCosmeticsString());
-                ps.setString(6, uuid.toString());
+                ps.setString(4, cosmetics.getBedDestroyMessage().name());
+                ps.setString(5, cosmetics.getVictoryDance().name());
+                ps.setString(6, cosmetics.getOwnedCosmeticsString());
+                ps.setString(7, uuid.toString());
                 ps.executeUpdate();
                 ps.close();
             } catch (Exception e) {
@@ -139,6 +161,37 @@ public class CosmeticsManager {
         PlayerCosmetics cosmetics = getCosmetics(destroyer.getUniqueId());
         BedDestroySound sound = cosmetics.getBedDestroySound();
         sound.play(bedLocation);
+    }
+
+    public String formatBedDestroyMessage(String teamName, String destroyerName, String destroyerColor, UUID destroyerUUID) {
+        PlayerCosmetics cosmetics = getCosmetics(destroyerUUID);
+        BedDestroyMessage msg = cosmetics.getBedDestroyMessage();
+        return msg.format(teamName, destroyerName, destroyerColor);
+    }
+
+    public boolean purchaseCosmetic(Player player, String cosmeticId, int price) {
+        UUID uuid = player.getUniqueId();
+        PlayerCosmetics cosmetics = getCosmetics(uuid);
+
+        if (cosmetics.ownsCosmetic(cosmeticId)) {
+            player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik bereits!");
+            return false;
+        }
+
+        int coins = plugin.getCore().getCoinManager().getCoins(uuid);
+        if (coins < price) {
+            player.sendMessage(BedWars.PREFIX + "§cDu hast nicht genug Coins! Benötigt: §e" + price);
+            return false;
+        }
+
+        plugin.getCore().getCoinManager().removeCoins(uuid, price);
+        cosmetics.addOwnedCosmetic(cosmeticId);
+        savePlayerCosmetics(uuid);
+
+        player.sendMessage(BedWars.PREFIX + "§aKosmetik erfolgreich gekauft für §e" + price + " Coins§a!");
+        player.playSound(player.getLocation(), Sound.LEVEL_UP, 1.0f, 1.0f);
+
+        return true;
     }
 
     // Enums for cosmetics
@@ -177,6 +230,11 @@ public class CosmeticsManager {
                 default: return "§7Unbekannt";
             }
         }
+
+        public int getPrice() {
+            if (this == DEFAULT) return 0;
+            return 500;
+        }
     }
 
     public enum DeathMessage {
@@ -207,6 +265,11 @@ public class CosmeticsManager {
                 case EXPIRED: return "§5Abgelaufen";
                 default: return "§7Unbekannt";
             }
+        }
+
+        public int getPrice() {
+            if (this == DEFAULT) return 0;
+            return 500;
         }
     }
 
@@ -247,6 +310,53 @@ public class CosmeticsManager {
                 default: return "§7Unbekannt";
             }
         }
+
+        public int getPrice() {
+            if (this == DEFAULT) return 0;
+            return 500;
+        }
+    }
+
+    public enum BedDestroyMessage {
+        DEFAULT("§f§lBETT ZERSTÖRT > ", " §7von "),
+        EXPLOSION("§c§l💥 BOOM! > ", " §7gesprengt von "),
+        SNEAKY("§7§l🔪 > ", " §7leise zerstört von "),
+        EPIC("§6§l⚔ EPIC > ", " §7vernichtet von "),
+        FIRE("§c§l🔥 VERBRANNT > ", " §7angezündet von "),
+        THUNDER("§e§l⚡ BLITZ > ", " §7eingeschlagen von "),
+        SKULL("§8§l☠ TOD > ", " §7ausgelöscht von "),
+        HEART("§d§l💔 GEBROCHEN > ", " §7gebrochen von ");
+
+        private final String prefix;
+        private final String suffix;
+
+        BedDestroyMessage(String prefix, String suffix) {
+            this.prefix = prefix;
+            this.suffix = suffix;
+        }
+
+        public String format(String teamName, String destroyerName, String destroyerColor) {
+            return prefix + teamName + suffix + destroyerColor + destroyerName;
+        }
+
+        public String getDisplayName() {
+            switch (this) {
+                case DEFAULT: return "§fStandard";
+                case EXPLOSION: return "§cExplosion";
+                case SNEAKY: return "§7Schleichend";
+                case EPIC: return "§6Episch";
+                case FIRE: return "§cFeuer";
+                case THUNDER: return "§eBlitz";
+                case SKULL: return "§8Tod";
+                case HEART: return "§dGebrochen";
+                default: return "§7Unbekannt";
+            }
+        }
+
+        public int getPrice() {
+            if (this == DEFAULT) return 0;
+            return 750;
+        }
     }
 
     public enum VictoryDance {
@@ -264,6 +374,11 @@ public class CosmeticsManager {
                 default: return "§7Unbekannt";
             }
         }
+
+        public int getPrice() {
+            if (this == DEFAULT) return 0;
+            return 1000;
+        }
     }
 
     // Player cosmetics data class
@@ -271,6 +386,7 @@ public class CosmeticsManager {
         private KillMessage killMessage;
         private DeathMessage deathMessage;
         private BedDestroySound bedDestroySound;
+        private BedDestroyMessage bedDestroyMessage;
         private VictoryDance victoryDance;
         private final java.util.Set<String> ownedCosmetics;
 
@@ -278,20 +394,24 @@ public class CosmeticsManager {
             this.killMessage = KillMessage.DEFAULT;
             this.deathMessage = DeathMessage.DEFAULT;
             this.bedDestroySound = BedDestroySound.DEFAULT;
+            this.bedDestroyMessage = BedDestroyMessage.DEFAULT;
             this.victoryDance = VictoryDance.DEFAULT;
             this.ownedCosmetics = ConcurrentHashMap.newKeySet();
             // Everyone owns the default cosmetics
             ownedCosmetics.add("KILL_DEFAULT");
             ownedCosmetics.add("DEATH_DEFAULT");
             ownedCosmetics.add("SOUND_DEFAULT");
+            ownedCosmetics.add("BEDMSG_DEFAULT");
             ownedCosmetics.add("DANCE_DEFAULT");
         }
 
         public PlayerCosmetics(KillMessage killMessage, DeathMessage deathMessage,
-                               BedDestroySound bedDestroySound, VictoryDance victoryDance, String ownedString) {
+                               BedDestroySound bedDestroySound, BedDestroyMessage bedDestroyMessage,
+                               VictoryDance victoryDance, String ownedString) {
             this.killMessage = killMessage;
             this.deathMessage = deathMessage;
             this.bedDestroySound = bedDestroySound;
+            this.bedDestroyMessage = bedDestroyMessage;
             this.victoryDance = victoryDance;
             this.ownedCosmetics = ConcurrentHashMap.newKeySet();
             if (ownedString != null && !ownedString.isEmpty()) {
@@ -303,6 +423,7 @@ public class CosmeticsManager {
             ownedCosmetics.add("KILL_DEFAULT");
             ownedCosmetics.add("DEATH_DEFAULT");
             ownedCosmetics.add("SOUND_DEFAULT");
+            ownedCosmetics.add("BEDMSG_DEFAULT");
             ownedCosmetics.add("DANCE_DEFAULT");
         }
 
@@ -314,6 +435,9 @@ public class CosmeticsManager {
 
         public BedDestroySound getBedDestroySound() { return bedDestroySound; }
         public void setBedDestroySound(BedDestroySound bedDestroySound) { this.bedDestroySound = bedDestroySound; }
+
+        public BedDestroyMessage getBedDestroyMessage() { return bedDestroyMessage; }
+        public void setBedDestroyMessage(BedDestroyMessage bedDestroyMessage) { this.bedDestroyMessage = bedDestroyMessage; }
 
         public VictoryDance getVictoryDance() { return victoryDance; }
         public void setVictoryDance(VictoryDance victoryDance) { this.victoryDance = victoryDance; }

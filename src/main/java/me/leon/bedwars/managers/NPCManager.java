@@ -190,7 +190,7 @@ public class NPCManager {
         if (partySize > 1) {
             joinWithParty(player, bestArena);
         } else {
-            bestArena.addPlayer(player);
+            plugin.getGameManager().joinArena(player, bestArena.getName());
         }
     }
 
@@ -248,7 +248,7 @@ public class NPCManager {
             Player member = plugin.getServer().getPlayer(memberUUID);
             if (member != null && member.isOnline()) {
                 if (plugin.getGameManager().getArenaByPlayer(member.getUniqueId()) == null) {
-                    arena.addPlayer(member);
+                    plugin.getGameManager().joinArena(member, arena.getName());
                 }
             }
         }

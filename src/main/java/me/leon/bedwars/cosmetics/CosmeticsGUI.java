@@ -23,6 +23,7 @@ public class CosmeticsGUI implements Listener {
     private static final String KILL_TITLE = "§8Kill-Nachrichten";
     private static final String DEATH_TITLE = "§8Todes-Nachrichten";
     private static final String SOUND_TITLE = "§8Bett-Sounds";
+    private static final String BEDMSG_TITLE = "§8Bett-Nachrichten";
     private static final String DANCE_TITLE = "§8Sieges-Tänze";
 
     public CosmeticsGUI(BedWars plugin) {
@@ -30,9 +31,22 @@ public class CosmeticsGUI implements Listener {
     }
 
     public void openMainMenu(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 27, MAIN_TITLE);
+        Inventory inv = Bukkit.createInventory(null, 36, MAIN_TITLE);
 
         PlayerCosmetics cosmetics = plugin.getCosmeticsManager().getCosmetics(player.getUniqueId());
+        int coins = plugin.getCore().getCoinManager().getCoins(player.getUniqueId());
+
+        // Coins display - Slot 4
+        ItemStack coinItem = new ItemStack(Material.GOLD_INGOT);
+        ItemMeta coinMeta = coinItem.getItemMeta();
+        coinMeta.setDisplayName("§6§lDeine Coins");
+        coinMeta.setLore(Arrays.asList(
+                "§7Du hast: §e" + coins + " Coins",
+                "§f",
+                "§7Kaufe Kosmetiken mit Coins!"
+        ));
+        coinItem.setItemMeta(coinMeta);
+        inv.setItem(4, coinItem);
 
         // Kill Messages - Slot 10
         ItemStack killItem = new ItemStack(Material.DIAMOND_SWORD);
@@ -76,7 +90,21 @@ public class CosmeticsGUI implements Listener {
         soundItem.setItemMeta(soundMeta);
         inv.setItem(14, soundItem);
 
-        // Victory Dance - Slot 16
+        // Bed Destroy Messages - Slot 16
+        ItemStack bedMsgItem = new ItemStack(Material.BED);
+        ItemMeta bedMsgMeta = bedMsgItem.getItemMeta();
+        bedMsgMeta.setDisplayName("§e§lBett-Nachrichten");
+        bedMsgMeta.setLore(Arrays.asList(
+                "§7Wähle deine Bett-Nachricht!",
+                "§f",
+                "§7Aktuell: " + cosmetics.getBedDestroyMessage().getDisplayName(),
+                "§f",
+                "§eKlicken zum Öffnen"
+        ));
+        bedMsgItem.setItemMeta(bedMsgMeta);
+        inv.setItem(16, bedMsgItem);
+
+        // Victory Dance - Slot 22
         ItemStack danceItem = new ItemStack(Material.FIREWORK);
         ItemMeta danceMeta = danceItem.getItemMeta();
         danceMeta.setDisplayName("§d§lSieges-Tänze");
@@ -88,7 +116,7 @@ public class CosmeticsGUI implements Listener {
                 "§eKlicken zum Öffnen"
         ));
         danceItem.setItemMeta(danceMeta);
-        inv.setItem(16, danceItem);
+        inv.setItem(22, danceItem);
 
         // Fill empty slots with glass
         ItemStack filler = new ItemStack(Material.STAINED_GLASS_PANE, 1, (short) 15);
@@ -130,7 +158,8 @@ public class CosmeticsGUI implements Listener {
                 lore.add("§eKlicken zum Auswählen");
             } else {
                 lore.add("§c✗ Nicht freigeschaltet");
-                lore.add("§7Kaufbar im Shop");
+                lore.add("§7Preis: §e" + msg.getPrice() + " Coins");
+                lore.add("§aRechtsklick zum Kaufen");
             }
 
             meta.setLore(lore);
@@ -179,7 +208,8 @@ public class CosmeticsGUI implements Listener {
                 lore.add("§eKlicken zum Auswählen");
             } else {
                 lore.add("§c✗ Nicht freigeschaltet");
-                lore.add("§7Kaufbar im Shop");
+                lore.add("§7Preis: §e" + msg.getPrice() + " Coins");
+                lore.add("§aRechtsklick zum Kaufen");
             }
 
             meta.setLore(lore);
@@ -228,7 +258,58 @@ public class CosmeticsGUI implements Listener {
                 lore.add("§7Rechtsklick für Vorschau");
             } else {
                 lore.add("§c✗ Nicht freigeschaltet");
-                lore.add("§7Kaufbar im Shop");
+                lore.add("§7Preis: §e" + sound.getPrice() + " Coins");
+                lore.add("§aRechtsklick zum Kaufen");
+            }
+
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+            inv.setItem(slot, item);
+
+            slot++;
+            if (slot == 17) slot = 19;
+            if (slot == 26) break;
+        }
+
+        // Back button
+        ItemStack back = new ItemStack(Material.ARROW);
+        ItemMeta backMeta = back.getItemMeta();
+        backMeta.setDisplayName("§c§lZurück");
+        back.setItemMeta(backMeta);
+        inv.setItem(31, back);
+
+        fillEmpty(inv);
+        player.openInventory(inv);
+    }
+
+    public void openBedMessages(Player player) {
+        Inventory inv = Bukkit.createInventory(null, 36, BEDMSG_TITLE);
+        PlayerCosmetics cosmetics = plugin.getCosmeticsManager().getCosmetics(player.getUniqueId());
+        BedDestroyMessage current = cosmetics.getBedDestroyMessage();
+
+        int slot = 10;
+        for (BedDestroyMessage msg : BedDestroyMessage.values()) {
+            String cosmeticId = "BEDMSG_" + msg.name();
+            boolean owned = cosmetics.ownsCosmetic(cosmeticId);
+            boolean selected = current == msg;
+
+            ItemStack item = new ItemStack(selected ? Material.ENCHANTED_BOOK : (owned ? Material.BED : Material.PAPER));
+            ItemMeta meta = item.getItemMeta();
+            meta.setDisplayName(msg.getDisplayName());
+
+            List<String> lore = new ArrayList<>();
+            lore.add("§7Vorschau:");
+            lore.add(msg.format("§cRot", "Spieler", "§a"));
+            lore.add("§f");
+
+            if (selected) {
+                lore.add("§a✓ Ausgewählt");
+            } else if (owned) {
+                lore.add("§eKlicken zum Auswählen");
+            } else {
+                lore.add("§c✗ Nicht freigeschaltet");
+                lore.add("§7Preis: §e" + msg.getPrice() + " Coins");
+                lore.add("§aRechtsklick zum Kaufen");
             }
 
             meta.setLore(lore);
@@ -284,7 +365,8 @@ public class CosmeticsGUI implements Listener {
                 lore.add("§eKlicken zum Auswählen");
             } else {
                 lore.add("§c✗ Nicht freigeschaltet");
-                lore.add("§7Kaufbar im Shop");
+                lore.add("§7Preis: §e" + dance.getPrice() + " Coins");
+                lore.add("§aRechtsklick zum Kaufen");
             }
 
             meta.setLore(lore);
@@ -326,7 +408,7 @@ public class CosmeticsGUI implements Listener {
 
         if (!title.equals(MAIN_TITLE) && !title.equals(KILL_TITLE) &&
             !title.equals(DEATH_TITLE) && !title.equals(SOUND_TITLE) &&
-            !title.equals(DANCE_TITLE)) {
+            !title.equals(BEDMSG_TITLE) && !title.equals(DANCE_TITLE)) {
             return;
         }
 
@@ -343,13 +425,15 @@ public class CosmeticsGUI implements Listener {
         if (title.equals(MAIN_TITLE)) {
             handleMainMenu(player, event.getSlot());
         } else if (title.equals(KILL_TITLE)) {
-            handleKillMessages(player, event.getSlot(), cosmetics);
+            handleKillMessages(player, event.getSlot(), cosmetics, event.isRightClick());
         } else if (title.equals(DEATH_TITLE)) {
-            handleDeathMessages(player, event.getSlot(), cosmetics);
+            handleDeathMessages(player, event.getSlot(), cosmetics, event.isRightClick());
         } else if (title.equals(SOUND_TITLE)) {
             handleBedSounds(player, event.getSlot(), cosmetics, event.isRightClick());
+        } else if (title.equals(BEDMSG_TITLE)) {
+            handleBedMessages(player, event.getSlot(), cosmetics, event.isRightClick());
         } else if (title.equals(DANCE_TITLE)) {
-            handleVictoryDances(player, event.getSlot(), cosmetics);
+            handleVictoryDances(player, event.getSlot(), cosmetics, event.isRightClick());
         }
     }
 
@@ -365,12 +449,15 @@ public class CosmeticsGUI implements Listener {
                 openBedSounds(player);
                 break;
             case 16:
+                openBedMessages(player);
+                break;
+            case 22:
                 openVictoryDances(player);
                 break;
         }
     }
 
-    private void handleKillMessages(Player player, int slot, PlayerCosmetics cosmetics) {
+    private void handleKillMessages(Player player, int slot, PlayerCosmetics cosmetics, boolean purchase) {
         if (slot == 31) {
             openMainMenu(player);
             return;
@@ -383,7 +470,13 @@ public class CosmeticsGUI implements Listener {
         String cosmeticId = "KILL_" + msg.name();
 
         if (!cosmetics.ownsCosmetic(cosmeticId)) {
-            player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik nicht!");
+            if (purchase) {
+                if (plugin.getCosmeticsManager().purchaseCosmetic(player, cosmeticId, msg.getPrice())) {
+                    openKillMessages(player);
+                }
+            } else {
+                player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik nicht! §7Rechtsklick zum Kaufen.");
+            }
             return;
         }
 
@@ -393,7 +486,7 @@ public class CosmeticsGUI implements Listener {
         openKillMessages(player);
     }
 
-    private void handleDeathMessages(Player player, int slot, PlayerCosmetics cosmetics) {
+    private void handleDeathMessages(Player player, int slot, PlayerCosmetics cosmetics, boolean purchase) {
         if (slot == 31) {
             openMainMenu(player);
             return;
@@ -406,7 +499,13 @@ public class CosmeticsGUI implements Listener {
         String cosmeticId = "DEATH_" + msg.name();
 
         if (!cosmetics.ownsCosmetic(cosmeticId)) {
-            player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik nicht!");
+            if (purchase) {
+                if (plugin.getCosmeticsManager().purchaseCosmetic(player, cosmeticId, msg.getPrice())) {
+                    openDeathMessages(player);
+                }
+            } else {
+                player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik nicht! §7Rechtsklick zum Kaufen.");
+            }
             return;
         }
 
@@ -416,7 +515,7 @@ public class CosmeticsGUI implements Listener {
         openDeathMessages(player);
     }
 
-    private void handleBedSounds(Player player, int slot, PlayerCosmetics cosmetics, boolean preview) {
+    private void handleBedSounds(Player player, int slot, PlayerCosmetics cosmetics, boolean rightClick) {
         if (slot == 31) {
             openMainMenu(player);
             return;
@@ -429,11 +528,17 @@ public class CosmeticsGUI implements Listener {
         String cosmeticId = "SOUND_" + sound.name();
 
         if (!cosmetics.ownsCosmetic(cosmeticId)) {
-            player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik nicht!");
+            if (rightClick) {
+                if (plugin.getCosmeticsManager().purchaseCosmetic(player, cosmeticId, sound.getPrice())) {
+                    openBedSounds(player);
+                }
+            } else {
+                player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik nicht! §7Rechtsklick zum Kaufen.");
+            }
             return;
         }
 
-        if (preview) {
+        if (rightClick) {
             sound.play(player.getLocation());
             player.sendMessage(BedWars.PREFIX + "§7Vorschau: " + sound.getDisplayName());
         } else {
@@ -444,7 +549,36 @@ public class CosmeticsGUI implements Listener {
         }
     }
 
-    private void handleVictoryDances(Player player, int slot, PlayerCosmetics cosmetics) {
+    private void handleBedMessages(Player player, int slot, PlayerCosmetics cosmetics, boolean purchase) {
+        if (slot == 31) {
+            openMainMenu(player);
+            return;
+        }
+
+        int index = slotToIndex(slot);
+        if (index < 0 || index >= BedDestroyMessage.values().length) return;
+
+        BedDestroyMessage msg = BedDestroyMessage.values()[index];
+        String cosmeticId = "BEDMSG_" + msg.name();
+
+        if (!cosmetics.ownsCosmetic(cosmeticId)) {
+            if (purchase) {
+                if (plugin.getCosmeticsManager().purchaseCosmetic(player, cosmeticId, msg.getPrice())) {
+                    openBedMessages(player);
+                }
+            } else {
+                player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik nicht! §7Rechtsklick zum Kaufen.");
+            }
+            return;
+        }
+
+        cosmetics.setBedDestroyMessage(msg);
+        plugin.getCosmeticsManager().savePlayerCosmetics(player.getUniqueId());
+        player.sendMessage(BedWars.PREFIX + "§aBett-Nachricht geändert zu: " + msg.getDisplayName());
+        openBedMessages(player);
+    }
+
+    private void handleVictoryDances(Player player, int slot, PlayerCosmetics cosmetics, boolean purchase) {
         if (slot == 31) {
             openMainMenu(player);
             return;
@@ -457,7 +591,13 @@ public class CosmeticsGUI implements Listener {
         String cosmeticId = "DANCE_" + dance.name();
 
         if (!cosmetics.ownsCosmetic(cosmeticId)) {
-            player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik nicht!");
+            if (purchase) {
+                if (plugin.getCosmeticsManager().purchaseCosmetic(player, cosmeticId, dance.getPrice())) {
+                    openVictoryDances(player);
+                }
+            } else {
+                player.sendMessage(BedWars.PREFIX + "§cDu besitzt diese Kosmetik nicht! §7Rechtsklick zum Kaufen.");
+            }
             return;
         }
 
