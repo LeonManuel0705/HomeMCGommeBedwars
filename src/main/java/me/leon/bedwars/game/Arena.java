@@ -556,8 +556,6 @@ public class Arena {
         }
     }
 
-
-
     public void forceEnd() {
         gameState = GameState.ENDING;
 
